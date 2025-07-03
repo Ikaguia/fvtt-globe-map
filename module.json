@@ -24,10 +24,12 @@
     "scripts/module.js"
   ],
   "scripts": [
-    "scripts/lib/lib.js"
+    "lib/lib.js",
+    "lib/maplibre-gl/maplibre-gl.js"
   ],
   "styles": [
-    "styles/module.css"
+    "styles/module.css",
+    "lib/maplibre-gl/maplibre-gl.css"
   ],
   "languages": [
     {
