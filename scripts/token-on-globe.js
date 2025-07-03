@@ -30,26 +30,65 @@ export class TokenMarkers {
 		console.debug("lat", lat);
 		return { lat, lon };
 	}
-	createTokenMarker(token) {
+	async createImage(token) {
+		const tokenImageUrl = token.texture.src;
+
+		if (!this.map.hasImage(`token-icon-${token.id}`)) {
+			try {
+				const image = await new Promise((resolve, reject) => {
+					this.map.loadImage(tokenImageUrl, (error, image) => {
+						if (error) reject(error);
+						else resolve(image);
+					});
+				});
+				this.map.addImage(`token-icon-${token.id}`, image);
+			} catch (err) {
+				console.error("Failed to load token image:", err);
+			}
+		}
+	}
+
+	async createTokenMarker(token) {
 		const { x, y } = token;
 		const { lat, lon } = this.sceneToLatLon(x, y);
 
-		// Create a DOM element or use MapLibre Marker options
-		const el = document.createElement('div');
-		el.className = 'token-marker';
-		el.style.width = '20px';
-		el.style.height = '20px';
-		el.style.background = 'red';
-		el.style.borderRadius = '50%';
+		await this.createImage(token);
 
-		const marker =  new maplibregl.Marker(el);
-		marker.setLngLat([lon, lat]);
-		marker.addTo(this.map);
-		this.tokenMarkers.push(marker);
+		this.map.addSource(`token-source-${token.id}`, {
+			type: "geojson",
+			data: {
+				type: "FeatureCollection",
+				features: [{
+					type: "Feature",
+					geometry: {
+						type: "Point",
+						coordinates: [lon, lat],
+					},
+					properties: {}
+				}]
+			}
+		});
+
+		this.map.addLayer({
+			id: `token-layer-${token.id}`,
+			type: "symbol",
+			source: `token-source-${token.id}`,
+			layout: {
+				"icon-image": `token-icon-${token.id}`,
+				"icon-size": 0.25,
+				"icon-allow-overlap": true
+			}
+		});
+
+		this.tokenMarkers.push(token.id);
 	}
 	update() {
 		// Clear old markers
-		this.tokenMarkers.forEach(m => m.remove());
+		this.tokenMarkers.forEach(id => {
+			this.map.removeLayer(`token-layer-${id}`);
+			this.map.removeSource(`token-source-${id}`);
+		});
+		this.tokenMarkers = [];
 		// Create new markers
 		this.tokens.forEach(token => this.createTokenMarker(token));
 	}

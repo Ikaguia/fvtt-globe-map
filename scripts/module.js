@@ -87,13 +87,15 @@ Hooks.on("canvasReady", (canvas) => {
 		}
 	});
 
-	// Tokens on map
-	const tokenMarkers = new TokenMarkers(map, canvas.scene);
-	// Token movement
-	Hooks.on("createToken", () => { tokenMarkers.update(); });
-	Hooks.on("updateToken", () => { tokenMarkers.update(); });
-	Hooks.on("deleteToken", () => { tokenMarkers.update(); });
-	Hooks.on("updateScene", () => { tokenMarkers.update(); });
+	Hooks.once("fvtt-globe-map.style.load", (map) => {
+		// Tokens on map
+		const tokenMarkers = new TokenMarkers(map, canvas.scene);
+		// Token movement
+		Hooks.on("createToken", () => { tokenMarkers.update(); });
+		Hooks.on("updateToken", () => { tokenMarkers.update(); });
+		Hooks.on("deleteToken", () => { tokenMarkers.update(); });
+		Hooks.on("updateScene", () => { tokenMarkers.update(); });
+	});
 });
 
 Hooks.on("renderSceneConfig", (app, html, data) => {
