@@ -1,6 +1,5 @@
-import "../lib/maplibre-gl/maplibre-gl.js";
-import layers from "../lib/pathfinder-wiki-maps/src/layers.js";
-import * as pmtiles from "../lib/pmtiles/pmtiles-bundle.js";
+import { TokenMarkers } from "./token-on-globe.js";
+import { createMap } from "./map.js";
 
 Hooks.once('init', async function() {
 	// CONFIG.debug.hooks = true;
@@ -14,6 +13,7 @@ Hooks.on("canvasReady", (canvas) => {
 	const enabled = canvas.scene.getFlag("fvtt-globe-map", "enabled");
 	if (!enabled) return;
 
+	// Map container
 	const container = document.createElement("div");
 	container.id = "maplibre-container";
 	Object.assign(container.style, {
@@ -26,61 +26,16 @@ Hooks.on("canvasReady", (canvas) => {
 	});
 	document.body.appendChild(container);
 
-	let root = `${location.protocol}//${location.host}/`;
-	let pmtilesProt = new pmtiles.Protocol();
-	maplibregl.addProtocol("pmtiles", pmtilesProt.tilev4);
+	// Map
+	const [map, projection] = createMap();
 
-	const map = new maplibregl.Map({
-		container: "maplibre-container",
-		hash: "location",
-		attributionControl: false,
-		pitchWithRotate: false,
-		style: {
-			version: 8,
-			sources: {
-				golarion: {
-					type: "vector",
-					attribution:
-						'<a href="https://paizo.com/licenses/communityuse">Paizo CUP</a>, ' +
-						'<a href="https://github.com/pf-wikis/mapping#acknowledgments">Acknowledgments</a>',
-					url: "pmtiles:///modules/fvtt-globe-map/lib/pathfinder-wiki-maps/data/golarion.pmtiles"
-				}
-			},
-			sprite: `${root}/modules/fvtt-globe-map/lib/pathfinder-wiki-maps/data/sprites`,
-			layers: layers(),
-			glyphs: `modules/fvtt-globe-map/lib/pathfinder-wiki-maps/data/fonts/{fontstack}/{range}.pbf`,
-			transition: {
-				duration: 300,
-				delay: 0
-			},
-			sky: {
-				"atmosphere-blend": 0.5
-			}
-		}
-	});
-
-	const projection = [
-		"interpolate",
-		["linear"],
-		["zoom"],
-		4,
-		"vertical-perspective",
-		5,
-		"mercator"
-	];
-
-	map.on("style.load", () => {
-		map.setProjection({ type: projection });
-		console.log("Map loaded, checking sources...");
-		console.log(map.getStyle().sources);
-	});
-
+	// Maximize/Minimize button
 	const toggleBtn = document.createElement("button");
 	toggleBtn.innerText = "—"; // "—" for minimize, "☐" for maximize later
 	Object.assign(toggleBtn.style, {
 		position: "absolute",
 		top: "10px",
-		right: "50px",
+		right: "60px",
 		zIndex: 9999,
 		background: "#fff",
 		border: "1px solid #ccc",
@@ -100,7 +55,7 @@ Hooks.on("canvasReady", (canvas) => {
 				height: "20vh",
 				top: "10px",
 				left: "auto",
-				right: "50px",
+				right: "60px",
 				bottom: "auto",
 				pointerEvents: "none",
 				border: "1px solid #ccc",
@@ -131,6 +86,14 @@ Hooks.on("canvasReady", (canvas) => {
 			minimized = false;
 		}
 	});
+
+	// Tokens on map
+	const tokenMarkers = new TokenMarkers(map, canvas.scene);
+	// Token movement
+	Hooks.on("createToken", () => { tokenMarkers.update(); });
+	Hooks.on("updateToken", () => { tokenMarkers.update(); });
+	Hooks.on("deleteToken", () => { tokenMarkers.update(); });
+	Hooks.on("updateScene", () => { tokenMarkers.update(); });
 });
 
 Hooks.on("renderSceneConfig", (app, html, data) => {
