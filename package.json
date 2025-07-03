@@ -7,7 +7,9 @@
     "scripts": {
         "link": "node ./build/link-foundry.js",
         "postinstall": "npm run copy-deps",
-        "copy-deps": "cpy node_modules/maplibre-gl/dist/maplibre-gl.{js,css} node_modules/maplibre-gl/LICENSE.txt lib/maplibre-gl"
+        "copy-deps": "npm run copy-maplibre && npm run copy-pmtiles",
+        "copy-maplibre": "cpy node_modules/maplibre-gl/dist/maplibre-gl.{js,css} node_modules/maplibre-gl/LICENSE.txt lib/maplibre-gl --flat",
+        "copy-pmtiles": "npx rollup -c"
     },
     "author": "Ikaguia",
     "license": "",
@@ -15,10 +17,12 @@
         "node": ">=20.15.0"
     },
     "devDependencies": {
+        "@rollup/plugin-node-resolve": "^16.0.1",
         "@types/prompts": "^2.4.9",
-        "prompts": "^2.4.2"
-    },
-    "dependencies": {
-        "maplibre-gl": ">=2.4.0"
+        "cpy-cli": "^5.0.0",
+        "maplibre-gl": "^5.6.1",
+        "pmtiles": "^4.3.0",
+        "prompts": "^2.4.2",
+        "rollup": "^4.44.1"
     }
 }

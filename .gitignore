@@ -12,3 +12,6 @@ node_modules/
 
 # OS Specific
 .DS_Store
+
+# PMTiles file (too big for github)
+*.pmtiles

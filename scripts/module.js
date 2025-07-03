@@ -1,5 +1,6 @@
 import "../lib/maplibre-gl/maplibre-gl.js";
-import {layers} from "../lib/pathfinder-wiki-maps/src/layers.ts";
+import layers from "../lib/pathfinder-wiki-maps/src/layers.js";
+import * as pmtiles from "../lib/pmtiles/pmtiles-bundle.js";
 
 Hooks.once('init', async function() {
 	// CONFIG.debug.hooks = true;
@@ -21,9 +22,13 @@ Hooks.on("canvasReady", (canvas) => {
 		left: 0,
 		width: "100%",
 		height: "100%",
-		zIndex: 50
+		zIndex: 10
 	});
 	document.body.appendChild(container);
+
+	let root = `${location.protocol}//${location.host}/`;
+	let pmtilesProt = new pmtiles.Protocol();
+	maplibregl.addProtocol("pmtiles", pmtilesProt.tilev4);
 
 	const map = new maplibregl.Map({
 		container: "maplibre-container",
@@ -38,12 +43,12 @@ Hooks.on("canvasReady", (canvas) => {
 					attribution:
 						'<a href="https://paizo.com/licenses/communityuse">Paizo CUP</a>, ' +
 						'<a href="https://github.com/pf-wikis/mapping#acknowledgments">Acknowledgments</a>',
-					url: "pmtiles://https://map.pathfinderwiki.com/data/golarion.pmtiles"
+					url: "pmtiles:///modules/fvtt-globe-map/lib/pathfinder-wiki-maps/data/golarion.pmtiles"
 				}
 			},
-			sprite: "https://map.pathfinderwiki.com/sprites/sprites",
+			sprite: `${root}/modules/fvtt-globe-map/lib/pathfinder-wiki-maps/data/sprites`,
 			layers: layers(),
-			glyphs: "https://map.pathfinderwiki.com/fonts/{fontstack}/{range}.pbf",
+			glyphs: `modules/fvtt-globe-map/lib/pathfinder-wiki-maps/data/fonts/{fontstack}/{range}.pbf`,
 			transition: {
 				duration: 300,
 				delay: 0
@@ -54,22 +59,78 @@ Hooks.on("canvasReady", (canvas) => {
 		}
 	});
 
-	// const projection = [
-	// 	"interpolate",
-	// 	["linear"],
-	// 	["zoom"],
-	// 	4,
-	// 	"vertical-perspective",
-	// 	5,
-	// 	"mercator"
-	// ];
-
-	const projection = "globe";
+	const projection = [
+		"interpolate",
+		["linear"],
+		["zoom"],
+		4,
+		"vertical-perspective",
+		5,
+		"mercator"
+	];
 
 	map.on("style.load", () => {
 		map.setProjection({ type: projection });
+		console.log("Map loaded, checking sources...");
+		console.log(map.getStyle().sources);
 	});
 
+	const toggleBtn = document.createElement("button");
+	toggleBtn.innerText = "—"; // "—" for minimize, "☐" for maximize later
+	Object.assign(toggleBtn.style, {
+		position: "absolute",
+		top: "10px",
+		right: "50px",
+		zIndex: 9999,
+		background: "#fff",
+		border: "1px solid #ccc",
+		borderRadius: "5px",
+		padding: "2px 8px",
+		cursor: "pointer",
+		userSelect: "none"
+	});
+	document.body.appendChild(toggleBtn);
+
+	let minimized = false;
+	toggleBtn.addEventListener("click", () => {
+		if (!minimized) {
+			// Minimize: move container to top-right corner, shrink size, disable pointer
+			Object.assign(container.style, {
+				width: "20vw",
+				height: "20vh",
+				top: "10px",
+				left: "auto",
+				right: "50px",
+				bottom: "auto",
+				pointerEvents: "none",
+				border: "1px solid #ccc",
+				borderRadius: "5px",
+				boxShadow: "0 0 10px rgba(0,0,0,0.3)",
+				transition: "all 0.3s ease"
+			});
+			map.setProjection({ type: "mercator" });
+			toggleBtn.innerText = "☐";  // Change button to "maximize" icon
+			minimized = true;
+		} else {
+			// Maximize: restore full screen and pointer interaction
+			Object.assign(container.style, {
+				width: "100%",
+				height: "100%",
+				top: 0,
+				left: 0,
+				right: "auto",
+				bottom: "auto",
+				pointerEvents: "auto",
+				border: "none",
+				borderRadius: "0",
+				boxShadow: "none",
+				transition: "all 0.3s ease"
+			});
+			map.setProjection({ type: projection });
+			toggleBtn.innerText = "—"; // Change button back to "minimize"
+			minimized = false;
+		}
+	});
 });
 
 Hooks.on("renderSceneConfig", (app, html, data) => {
