@@ -1,0 +1,20 @@
+{
+    "name": "fvtt-world-map",
+    "version": "0.0.1",
+    "description": "",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "link": "node ./build/link-foundry.js"
+    },
+    "author": "Ikaguia",
+    "license": "",
+    "engines": {
+        "node": ">=20.15.0"
+    },
+    "devDependencies": {
+        "@types/prompts": "^2.4.9",
+        "prompts": "^2.4.2"
+    },
+    "dependencies": {}
+}
