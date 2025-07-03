@@ -29,39 +29,29 @@ export class TokenMarkers {
 		return { lat, lon };
 	}
 
+	createTokenMarker(token) {
+		console.debug("createTokenMarker", token);
+		this.createImage(token);
+		this.createTokenSourceLayer(token);
+	}
+
 	async createImage(token) {
 		const id = `token-icon-${token.id}`;
 		const url = token.texture.src;
 
-		if (this.map.hasImage(id)) {
-			console.debug(`Image already exists: ${id}`);
-			return;
-		}
-
-		try {
-			const image = await new Promise((resolve, reject) => {
-				this.map.loadImage(url, (error, image) => {
-					if (error) reject(error);
-					else resolve(image);
-				});
-			});
-			this.map.addImage(id, image);
-			console.debug(`Loaded and added image for token: ${id}`);
-		} catch (err) {
-			console.error(`Failed to load token image (${url}):`, err);
+		if (!this.map.hasImage(id)) {
+			console.log(`Adding image for token: ${id}`);
+			const image = await this.map.loadImage(url);
+			this.map.addImage(id, image.data);
 		}
 	}
 
-	async createTokenMarker(token) {
-		console.debug("createTokenMarker", token);
+	createTokenSourceLayer(token) {
+		const id = token.id;
 		const { x, y } = token;
 		const { lat, lon } = this.sceneToLatLon(x, y);
-		const id = token.id;
 
-		await this.createImage(token);
-
-		console.debug(`Creating source and layer for token ${id} at (${lon}, ${lat})`);
-
+		console.log(`Creating source and layer for token ${id} at (${lon}, ${lat})`);
 		this.map.addSource(`token-source-${id}`, {
 			type: "geojson",
 			data: {

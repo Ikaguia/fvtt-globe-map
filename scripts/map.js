@@ -53,5 +53,7 @@ export function createMap() {
 		Hooks.call("fvtt-globe-map.style.load", map);
 	});
 
+	map.keyboard.disable();
+
 	return [map, projection];
 }
