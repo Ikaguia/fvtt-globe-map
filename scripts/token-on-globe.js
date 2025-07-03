@@ -4,14 +4,7 @@ export class TokenMarkers {
 	constructor(map, scene) {
 		this.map = map;
 		this.scene = scene;
-		this.tokenMarkers = [];
-
-		console.debug("map:", this.map);
-		console.debug("scene:", this.scene);
-		console.debug("width:", this.width);
-		console.debug("height:", this.height);
-		console.debug("tokens:", this.tokens);
-		console.debug("tokenMarkers:", this.tokenMarkers);
+		this.tokenMarkers = new Set();
 
 		this.update();
 	}
@@ -24,13 +17,10 @@ export class TokenMarkers {
 	sceneToLatLon(x, y) {
 		const lon = Math.clamp((x / this.width) * 360 - 180, -180, 180);
 		const lat = Math.clamp(90 - (y / this.height) * 180, -90, 90);
-		console.debug("token.x", x, "width", this.width, "lon", lon);
-		console.debug("token.y", y, "height", this.height, "lat", lat);
 		return { lat, lon };
 	}
 
 	createTokenMarker(token) {
-		console.debug("createTokenMarker", token);
 		this.createImage(token);
 		this.createTokenSourceLayer(token);
 	}
@@ -39,15 +29,15 @@ export class TokenMarkers {
 		const id = `token-icon-${token.id}`;
 		const url = token.texture.src;
 
+		const image = await this.map.loadImage(url);
 		if (!this.map.hasImage(id)) {
-			console.log(`Adding image for token: ${id}`);
-			const image = await this.map.loadImage(url);
+			console.log(`Adding image for token: ${id}, url: ${url}`);
 			this.map.addImage(id, image.data);
 		}
 	}
 
 	createTokenSourceLayer(token) {
-		const id = token.id;
+		const id = token.id ?? token._id;
 		const { x, y } = token;
 		const { lat, lon } = this.sceneToLatLon(x, y);
 
@@ -78,18 +68,84 @@ export class TokenMarkers {
 			}
 		});
 
-		this.tokenMarkers.push(id);
+		this.tokenMarkers.add(id);
+	}
+
+	updateTokenMarker(token, updateImage=false) {
+		if (updateImage) this.updateImage(token);
+		this.updateTokenSource(token);
+	}
+
+	async updateImage(token) {
+		const id = token.id;
+		const iconID = `token-icon-${token.id}`;
+		const url = token.texture.src;
+
+		const image = await this.map.loadImage(url);
+		if (!this.map.hasImage(iconID)) {
+			console.log(`Adding image for token: ${iconID}, url: ${url}`);
+			this.map.addImage(iconID, image.data);
+		} else {
+			console.log(`Updating image for token: ${iconID}, url: ${url}`);
+			this.map.updateImage(iconID, image.data);
+		}
+
+		this.map.removeLayer(`token-layer-${id}`);
+		this.map.addLayer({
+			id: `token-layer-${id}`,
+			type: "symbol",
+			source: `token-source-${id}`,
+			layout: {
+				"icon-image": iconID,
+				"icon-size": 0.25,
+				"icon-allow-overlap": true
+			}
+		});
+	}
+
+	updateTokenSource(token) {
+		const id = token.id ?? token._id;
+		const { x, y } = token;
+		const { lat, lon } = this.sceneToLatLon(x, y);
+
+		// console.log(`Updating source for token ${id} at (${lon}, ${lat})`);
+		const sourceId = `token-source-${id}`;
+		const source = this.map.getSource(sourceId);
+		if (!source) return;
+
+		const newData = {
+			type: "FeatureCollection",
+			features: [{
+				type: "Feature",
+				geometry: {
+					type: "Point",
+					coordinates: [lon, lat]
+				},
+				properties: {}
+			}]
+		};
+
+		source.setData(newData);
+	}
+
+	deleteTokenMarker(id) {
+		if (this.map.getLayer(`token-layer-${id}`)) this.map.removeLayer(`token-layer-${id}`);
+		if (this.map.getSource(`token-source-${id}`)) this.map.removeSource(`token-source-${id}`);
+		this.tokenMarkers.delete(id);
 	}
 
 	update() {
-		// Clear old markers
-		this.tokenMarkers.forEach(id => {
-			if (this.map.getLayer(`token-layer-${id}`)) this.map.removeLayer(`token-layer-${id}`);
-			if (this.map.getSource(`token-source-${id}`)) this.map.removeSource(`token-source-${id}`);
-		});
-		this.tokenMarkers = [];
+		const oldIds = new Set(this.tokenMarkers);
+		const newIds = new Set(this.tokens.map(t => t.id));
+		const toDelete = oldIds.difference(newIds);
+		const toUpdate = oldIds.intersection(newIds);
+		const toCreate = newIds.difference(oldIds);
 
+		// Clear deleted markers
+		toDelete.forEach(id => this.deleteTokenMarker(id));
+		// Update old markers
+		toUpdate.forEach(id => this.updateTokenMarker(this.tokens.get(id)));
 		// Create new markers
-		this.tokens.forEach(token => this.createTokenMarker(token));
+		toCreate.forEach(id => this.createTokenMarker(this.tokens.get(id)));
 	}
 }

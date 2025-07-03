@@ -91,9 +91,10 @@ Hooks.on("canvasReady", (canvas) => {
 		// Tokens on map
 		const tokenMarkers = new TokenMarkers(map, canvas.scene);
 		// Token movement
-		Hooks.on("createToken", () => { tokenMarkers.update(); });
-		Hooks.on("updateToken", () => { tokenMarkers.update(); });
-		Hooks.on("deleteToken", () => { tokenMarkers.update(); });
+		Hooks.on("createToken", (token) => { tokenMarkers.createTokenMarker(token); });
+		Hooks.on("updateToken", (token, upd) => { tokenMarkers.updateTokenMarker(token, "texture" in upd); });
+		Hooks.on("refreshToken", (token) => { tokenMarkers.updateTokenMarker(token.document); });
+		Hooks.on("deleteToken", (token) => { tokenMarkers.deleteTokenMarker(token); });
 		Hooks.on("updateScene", () => { tokenMarkers.update(); });
 	});
 });
