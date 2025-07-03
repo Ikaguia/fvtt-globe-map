@@ -1,20 +1,19 @@
 {
-  "id": "module",
-  "title": "New Module",
-  "description": "",
+  "id": "fvtt-globe-map",
+  "title": "FVTT Globe Map",
+  "description": "Globe Map Module",
   "version": "#{VERSION}#",
   "library": "false",
   "manifestPlusVersion": "1.2.0",
   "compatibility": {
-    "minimum": 10,
-    "verified": 10,
-    "maximum": 11
+    "minimum": 12,
+    "verified": 13,
+    "maximum": 13
   },
   "authors": [
     {
-      "name": "The League of Extraordinary FVTT Developers",
-      "url": "https://github.com/League-of-Foundry-Developers",
-      "discord": "discordID#0001"
+      "name": "Ikaguia",
+      "discord": "ikaguia"
     }
   ],
   "relationships": {
