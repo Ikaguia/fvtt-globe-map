@@ -4,6 +4,10 @@
 
 Adds a globe map to your foundry scenes.
 
+To try it out, after installing the module, create a new scene and check the Enable MapLibre Globe checkbox in the scene configuration.
+
+Should be save to add and remove to any world, only data that is saved is the checkbox above, and only in the scene flags.
+
 ## Instalation
 
 To install and use this module, simply paste the following URL into the Install Module dialog on the Setup menu of the application.
@@ -12,7 +16,7 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 
 ## Changelog
 
-### [0.0.2]
+### [0.0.2 and 0.03]
 
 - Fix release workflow
 
@@ -23,6 +27,7 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 ## Credits
 
 All of the map files and a lot of the logic is pulled from https://github.com/pf-wikis/mapping.
+
 Here is the acknowledgements info from their repo:
 
 ## Acknowledgments
