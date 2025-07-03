@@ -1,4 +1,5 @@
 import "../lib/maplibre-gl/maplibre-gl.js";
+import {layers} from "../lib/pathfinder-wiki-maps/src/layers.ts";
 
 Hooks.once('init', async function() {
 	// CONFIG.debug.hooks = true;
@@ -24,34 +25,51 @@ Hooks.on("canvasReady", (canvas) => {
 	});
 	document.body.appendChild(container);
 
-	console.log("MapLibre version:", maplibregl.version);
-	console.log("MapLibre projections:", maplibregl.projections);
 	const map = new maplibregl.Map({
 		container: "maplibre-container",
-		style: "https://demotiles.maplibre.org/style.json",
-		center: [0, 0],
-		zoom: 1
-	});
-
-	map.once("style.load", () => {
-		console.log("Style loaded. Attempting to switch to globe projection...");
-		try {
-			map.setProjection({ type: "globe" });
-			console.log("Projection set to globe.");
-		} catch (err) {
-			console.error("Failed to set projection:", err);
+		hash: "location",
+		attributionControl: false,
+		pitchWithRotate: false,
+		style: {
+			version: 8,
+			sources: {
+				golarion: {
+					type: "vector",
+					attribution:
+						'<a href="https://paizo.com/licenses/communityuse">Paizo CUP</a>, ' +
+						'<a href="https://github.com/pf-wikis/mapping#acknowledgments">Acknowledgments</a>',
+					url: "pmtiles://https://map.pathfinderwiki.com/data/golarion.pmtiles"
+				}
+			},
+			sprite: "https://map.pathfinderwiki.com/sprites/sprites",
+			layers: layers(),
+			glyphs: "https://map.pathfinderwiki.com/fonts/{fontstack}/{range}.pbf",
+			transition: {
+				duration: 300,
+				delay: 0
+			},
+			sky: {
+				"atmosphere-blend": 0.5
+			}
 		}
-
-		// map.addLayer({
-		// 	id: "sky",
-		// 	type: "sky",
-		// 	paint: {
-		// 		"sky-type": "atmosphere",
-		// 		"sky-atmosphere-sun": [0.0, 0.0],
-		// 		"sky-atmosphere-sun-intensity": 15
-		// 	}
-		// });
 	});
+
+	// const projection = [
+	// 	"interpolate",
+	// 	["linear"],
+	// 	["zoom"],
+	// 	4,
+	// 	"vertical-perspective",
+	// 	5,
+	// 	"mercator"
+	// ];
+
+	const projection = "globe";
+
+	map.on("style.load", () => {
+		map.setProjection({ type: projection });
+	});
+
 });
 
 Hooks.on("renderSceneConfig", (app, html, data) => {
