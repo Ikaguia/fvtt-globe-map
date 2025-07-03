@@ -12,6 +12,10 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 
 ## Changelog
 
+### [0.0.2]
+
+- Fix release workflow
+
 ### [0.0.1]
 
 - Initial Release
