@@ -1,0 +1,107 @@
+{
+  "city-large": {
+    "height": 7,
+    "pixelRatio": 1,
+    "width": 7,
+    "x": 33,
+    "y": 0
+  },
+  "city-large-capital": {
+    "height": 7,
+    "pixelRatio": 1,
+    "width": 7,
+    "x": 40,
+    "y": 0
+  },
+  "city-major": {
+    "height": 9,
+    "pixelRatio": 1,
+    "width": 9,
+    "x": 12,
+    "y": 12
+  },
+  "city-major-capital": {
+    "height": 9,
+    "pixelRatio": 1,
+    "width": 9,
+    "x": 21,
+    "y": 12
+  },
+  "city-medium": {
+    "height": 6,
+    "pixelRatio": 1,
+    "width": 6,
+    "x": 7,
+    "y": 22
+  },
+  "city-medium-capital": {
+    "height": 6,
+    "pixelRatio": 1,
+    "width": 6,
+    "x": 13,
+    "y": 22
+  },
+  "city-small": {
+    "height": 5,
+    "pixelRatio": 1,
+    "width": 5,
+    "x": 19,
+    "y": 22
+  },
+  "city-small-capital": {
+    "height": 5,
+    "pixelRatio": 1,
+    "width": 5,
+    "x": 24,
+    "y": 22
+  },
+  "location-castle": {
+    "height": 12,
+    "pixelRatio": 1,
+    "width": 12,
+    "x": 0,
+    "y": 0
+  },
+  "location-castle-ruin": {
+    "height": 12,
+    "pixelRatio": 1,
+    "width": 12,
+    "x": 12,
+    "y": 0
+  },
+  "location-city-ruins": {
+    "height": 7,
+    "pixelRatio": 1,
+    "width": 7,
+    "x": 0,
+    "y": 22
+  },
+  "location-graveyard": {
+    "height": 9,
+    "pixelRatio": 1,
+    "width": 12,
+    "x": 30,
+    "y": 12
+  },
+  "location-mountain": {
+    "height": 8,
+    "pixelRatio": 1,
+    "width": 9,
+    "x": 24,
+    "y": 0
+  },
+  "location-other": {
+    "height": 10,
+    "pixelRatio": 1,
+    "width": 6,
+    "x": 0,
+    "y": 12
+  },
+  "location-tower": {
+    "height": 10,
+    "pixelRatio": 1,
+    "width": 6,
+    "x": 6,
+    "y": 12
+  }
+}

@@ -5,7 +5,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "link": "node ./build/link-foundry.js"
+        "link": "node ./build/link-foundry.js",
+        "postinstall": "npm run copy-deps",
+        "copy-deps": "cpy node_modules/maplibre-gl/dist/maplibre-gl.{js,css} node_modules/maplibre-gl/LICENSE.txt lib/maplibre-gl"
     },
     "author": "Ikaguia",
     "license": "",
@@ -17,6 +19,6 @@
         "prompts": "^2.4.2"
     },
     "dependencies": {
-        "maplibre-gl": ">=0"
+        "maplibre-gl": ">=2.4.0"
     }
 }
