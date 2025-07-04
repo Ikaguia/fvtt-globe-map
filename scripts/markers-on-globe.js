@@ -1,4 +1,4 @@
-export class TokenMarkers {
+export class MapMarkers {
 	// MapLibre map instance as `map`
 	// Foundry scene instance as `scene`
 	constructor(map, scene) {

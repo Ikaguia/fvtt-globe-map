@@ -1,4 +1,4 @@
-import { TokenMarkers } from "./token-on-globe.js";
+import { MapMarkers } from "./markers-on-globe.js";
 import { createMap } from "./map.js";
 
 Hooks.once('init', async function() {
@@ -89,13 +89,13 @@ Hooks.on("canvasReady", (canvas) => {
 
 	Hooks.once("fvtt-globe-map.style.load", (map) => {
 		// Tokens on map
-		const tokenMarkers = new TokenMarkers(map, canvas.scene);
+		const mapMarkers = new MapMarkers(map, canvas.scene);
 		// Token movement
-		Hooks.on("createToken", (token) => { tokenMarkers.createTokenMarker(token); });
-		Hooks.on("updateToken", (token, upd) => { tokenMarkers.updateTokenMarker(token, "texture" in upd); });
-		Hooks.on("refreshToken", (token) => { tokenMarkers.updateTokenMarker(token.document); });
-		Hooks.on("deleteToken", (token) => { tokenMarkers.deleteTokenMarker(token); });
-		Hooks.on("updateScene", () => { tokenMarkers.update(); });
+		Hooks.on("createToken", (token) => { mapMarkers.createTokenMarker(token); });
+		Hooks.on("updateToken", (token, upd) => { mapMarkers.updateTokenMarker(token, "texture" in upd); });
+		Hooks.on("refreshToken", (token) => { mapMarkers.updateTokenMarker(token.document); });
+		Hooks.on("deleteToken", (token) => { mapMarkers.deleteTokenMarker(token); });
+		Hooks.on("updateScene", () => { mapMarkers.update(); });
 	});
 });
 
