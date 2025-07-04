@@ -16,6 +16,10 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 
 ## Changelog
 
+### [0.0.4]
+
+- Tokens can now be selected and dragged from the map
+
 ### [0.0.2 and 0.03]
 
 - Fix release workflow
