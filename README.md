@@ -16,6 +16,10 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 
 ## Changelog
 
+### [0.0.5]
+
+- Added measurement ruler (cntrl + click to start)
+
 ### [0.0.4]
 
 - Tokens can now be selected and dragged from the map
