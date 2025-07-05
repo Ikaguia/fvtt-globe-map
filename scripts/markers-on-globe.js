@@ -1,3 +1,5 @@
+import * as turf from '../lib/turf/turf-bundle.js';
+
 export class MapMarkers {
 	// MapLibre map instance as `map`
 	// Foundry scene instance as `scene`
@@ -237,11 +239,24 @@ export class MapMarkers {
 			const midLng = (lng1 + lng2) / 2;
 			const midLat = (lat1 + lat2) / 2;
 
-			// Haversine or flat Euclidean approx (depends on your use case)
-			const dx = lng2 - lng1;
-			const dy = lat2 - lat1;
-			const segment = Math.sqrt(dx * dx + dy * dy);
+			// Real distance
+			const segment = turf.distance([lng1, lat1], [lng2, lat2], "kilometers");
 			totalDistance += segment;
+
+			const data = {
+				segment,
+				segmentUnit: "km",
+				totalDistance,
+				totalDistanceUnit: "km",
+			};
+			if (segment < 1) {
+				data.segment *= 1000;
+				data.segmentUnit = "m";
+			}
+			if (totalDistance < 1) {
+				data.totalDistance *= 1000;
+				data.totalDistanceUnit = "m";
+			}
 
 			features.push({
 				type: "Feature",
@@ -250,7 +265,7 @@ export class MapMarkers {
 					coordinates: [midLng, midLat]
 				},
 				properties: {
-					label: `${segment.toFixed(2)} (${totalDistance.toFixed(2)})`
+					label: `${data.segment.toFixed(2)} ${data.segmentUnit} (${data.totalDistance.toFixed(2)} ${data.totalDistanceUnit})`
 				}
 			});
 		}
@@ -262,13 +277,6 @@ export class MapMarkers {
 		// Update the labels
 		const labelSource = this.map.getSource("ruler-labels-source");
 		labelSource?.setData({ type: "FeatureCollection", features });
-
-
-
-		console.debug("Label features:", features);
-		this.map.setLayoutProperty("ruler-labels-layer", "visibility", "none");
-		this.map.setLayoutProperty("ruler-labels-layer", "visibility", "visible");
-		console.assert(this.map.getLayer("ruler-labels-layer"), "Label layer is missing");
 	}
 
 	deleteRulerMarker() {
