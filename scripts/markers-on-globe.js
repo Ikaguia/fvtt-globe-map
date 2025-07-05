@@ -8,19 +8,31 @@ export class MapMarkers {
 		this.scene = scene;
 		this.hooks = new Set();
 		// Tokens
-		this.tokenMarkers = new Set();
-		this.hovering = new Set();
-		// Token Dragging
-		this.dragging = {
-			id: null,
-			point: null,
-			active: false,
-		}
-		// Ruler Measurement
-		this.ruler = {
-			status: "inactive",
-			points: [],
-			temp: null
+		this.markers = {
+			token: {
+				ids: new Set(),
+				hovering: new Set(),
+				dragging: {
+					id: null,
+					point: null,
+					active: false,
+				},
+			},
+			// Notes
+			note: {
+				ids: new Set(),
+				hovering: new Set(),
+				dragging: {
+					id: null,
+					point: null,
+					active: false,
+				},
+			},
+			ruler: {
+				status: "inactive",
+				points: [],
+				temp: null,
+			},
 		}
 		// Initial Setup
 		this.addMapListeners();
@@ -31,10 +43,13 @@ export class MapMarkers {
 	destroy() {
 		this.map.remove();
 		this.map = null;
-		this.ruler = {};
-		this.dragging = {};
-		this.hovering.clear();
-		this.tokenMarkers.clear();
+		this.markers.ruler = {};
+		this.markers.token.dragging = {};
+		this.markers.token.hovering.clear();
+		this.markers.token.ids.clear();
+		this.markers.note.dragging = {};
+		this.markers.note.hovering.clear();
+		this.markers.note.ids.clear();
 		this.clearFoundryHooks();
 	}
 
@@ -47,8 +62,8 @@ export class MapMarkers {
 	get height() { return this.scene.height * (1 + 2 * this.padding) }
 	get tokens() { return this.scene.tokens }
 	get rulerCoordinates() {
-		const coords = [...this.ruler.points];
-		if (this.ruler.temp) coords.push(this.ruler.temp);
+		const coords = [...this.markers.ruler.points];
+		if (this.markers.ruler.temp) coords.push(this.markers.ruler.temp);
 		return coords.map(p => [p.lng, p.lat]);
 	}
 	get rulerSourceData() {
@@ -67,7 +82,7 @@ export class MapMarkers {
 	// --------------------------- //
 
 	update() {
-		const oldIds = new Set(this.tokenMarkers);
+		const oldIds = new Set(this.markers.token.ids);
 		const newIDs = new Set(this.tokens.map(t => t.id));
 		const toDelete = oldIds.difference(newIDs);
 		const toUpdate = oldIds.intersection(newIDs);
@@ -135,7 +150,7 @@ export class MapMarkers {
 			}
 		});
 
-		this.tokenMarkers.add(id);
+		this.markers.token.ids.add(id);
 	}
 
 	updateTokenMarker(token, updateImage=false) {
@@ -172,7 +187,7 @@ export class MapMarkers {
 
 	updateTokenSource(token) {
 		const id = token.id ?? token._id;
-		if (id === this.dragging.id) return;
+		if (id === this.markers.token.dragging.id) return;
 		const { x, y } = token;
 		const { lng, lat } = this.sceneToLngLat(x, y);
 
@@ -187,7 +202,7 @@ export class MapMarkers {
 	deleteTokenMarker(id) {
 		if (this.map.getLayer(`token-layer-${id}`)) this.map.removeLayer(`token-layer-${id}`);
 		if (this.map.getSource(`token-source-${id}`)) this.map.removeSource(`token-source-${id}`);
-		this.tokenMarkers.delete(id);
+		this.markers.token.ids.delete(id);
 	}
 
 	// Ruler Markers
@@ -337,9 +352,9 @@ export class MapMarkers {
 
 		// Ruler measurement logic
 		if (ctrl) {
-			if (this.ruler.status === "finished") this.onRulerReset(event);
+			if (this.markers.ruler.status === "finished") this.onRulerReset(event);
 			this.onRulerAdd(event);
-		} else if (this.ruler.status === "active") {
+		} else if (this.markers.ruler.status === "active") {
 			this.onRulerFinish(event);
 		}
 		// Regular token click logic
@@ -356,8 +371,8 @@ export class MapMarkers {
 		// Trigger token hover events
 		if (true) {
 			const newIDs = this.getTokensOnPoint(event.point);
-			const toDelete = this.hovering.difference(newIDs);
-			const toAdd = newIDs.difference(this.hovering);
+			const toDelete = this.markers.token.hovering.difference(newIDs);
+			const toAdd = newIDs.difference(this.markers.token.hovering);
 
 			// All tokens no longer being hovered over
 			for (const id of toDelete) {
@@ -370,21 +385,21 @@ export class MapMarkers {
 				if (token) this.onTokenHover(event, token, true);
 			}
 
-			this.hovering = newIDs;
+			this.markers.token.hovering = newIDs;
 		}
 		// Trigger token drag events
-		if (this.dragging.id) this.onTokenDrag(event, this.dragging.id);
+		if (this.markers.token.dragging.id) this.onTokenDrag(event, this.markers.token.dragging.id);
 		// Trigger ruler drag events
-		if (this.ruler.status === "active") this.onRulerDrag(event);
+		if (this.markers.ruler.status === "active") this.onRulerDrag(event);
 	}
 
 	onMouseLeave(event) {
 		// Trigger token unhover events
-		for (const id of this.hovering) {
+		for (const id of this.markers.token.hovering) {
 			const token = this.scene.tokens.get(id);
 			if (token) this.onTokenHover(event, token, false);
 		}
-		this.hovering.clear();
+		this.markers.token.hovering.clear();
 	}
 
 	onMouseDown(event) {
@@ -393,17 +408,17 @@ export class MapMarkers {
 	}
 
 	onMouseUp(event) {
-		if (this.dragging.id) this.onTokenRelease(event, this.dragging.id);
+		if (this.markers.token.dragging.id) this.onTokenRelease(event, this.markers.token.dragging.id);
 	}
 
 	// Token handlers
 
 	onTokenHover(event, token, entering=true) {
 		if (entering) {
-			if (!this.dragging.active) this.map.getCanvas().style.cursor = "pointer";
+			if (!this.markers.token.dragging.active) this.map.getCanvas().style.cursor = "pointer";
 			// canvas.tokens.hud.renderHover(token, { hoverOutOthers: true });
 		} else {
-			if (!this.dragging.active) this.map.getCanvas().style.cursor = "";
+			if (!this.markers.token.dragging.active) this.map.getCanvas().style.cursor = "";
 			// canvas.tokens.hud.clear();
 		}
 	}
@@ -415,25 +430,25 @@ export class MapMarkers {
 	onTokenGrab(event, id) {
 		const token = this.scene.tokens.get(id);
 		if (token) {
-			this.dragging.id = id;
-			this.dragging.point = event.point;
-			this.dragging.active = false;
+			this.markers.token.dragging.id = id;
+			this.markers.token.dragging.point = event.point;
+			this.markers.token.dragging.active = false;
 			this.map.dragPan.disable();
 			this.map.getCanvas().style.cursor = "grabbing";
 		}
 	}
 
 	onTokenDrag(event, id) {
-		// Start dragging if mouse moved far enough
-		if (!this.dragging.active) {
-			const dx = event.point.x - this.dragging.point.x;
-			const dy = event.point.y - this.dragging.point.y;
+		// Start token.dragging if mouse moved far enough
+		if (!this.markers.token.dragging.active) {
+			const dx = event.point.x - this.markers.token.dragging.point.x;
+			const dy = event.point.y - this.markers.token.dragging.point.y;
 			const distSq = dx * dx + dy * dy;
 			// 3px threshold (squared)
-			this.dragging.active = distSq > 9;
+			this.markers.token.dragging.active = distSq > 9;
 		}
 
-		if (this.dragging.active) {
+		if (this.markers.token.dragging.active) {
 			const { lng, lat } = this.map.unproject(event.point);
 			const source = this.map.getSource(`token-source-${id}`);
 			if (!source) return;
@@ -454,7 +469,7 @@ export class MapMarkers {
 	}
 
 	onTokenRelease(event, id) {
-		if (this.dragging.active) {
+		if (this.markers.token.dragging.active) {
 			const token = this.scene.tokens.get(id);
 			if (!token) return;
 
@@ -465,9 +480,9 @@ export class MapMarkers {
 			token.update({ x, y }, { animation: { duration: 1000 } });
 			token.object.control();
 		}
-		this.dragging.id = null;
-		this.dragging.point = null;
-		this.dragging.active = false;
+		this.markers.token.dragging.id = null;
+		this.markers.token.dragging.point = null;
+		this.markers.token.dragging.active = false;
 		this.map.dragPan.enable();
 		this.map.getCanvas().style.cursor = "";
 	}
@@ -477,50 +492,50 @@ export class MapMarkers {
 	onRulerAdd(event) {
 		console.debug('onRulerAdd', event);
 		const { lng, lat } = this.map.unproject(event.point);
-		this.ruler.points.push({ lng, lat });
-		this.ruler.temp = null;
+		this.markers.ruler.points.push({ lng, lat });
+		this.markers.ruler.temp = null;
 
-		if (this.ruler.status === "inactive") {
-			this.ruler.status = "active";
+		if (this.markers.ruler.status === "inactive") {
+			this.markers.ruler.status = "active";
 			this.createRulerMarker();
 		} else {
 			this.updateRulerMarker();
 		}
-		console.debug('ruler', this.ruler);
+		console.debug('ruler', this.markers.ruler);
 	}
 
 	onRulerDrag(event) {
 		console.debug('onRulerDrag', event);
-		if (this.ruler.status !== "active" || this.ruler.points.length === 0) return;
+		if (this.markers.ruler.status !== "active" || this.markers.ruler.points.length === 0) return;
 		const { lng, lat } = this.map.unproject(event.point);
 
-		if (!this.ruler.temp) {
-			const last_point = this.ruler.points[this.ruler.points.length-1];
+		if (!this.markers.ruler.temp) {
+			const last_point = this.markers.ruler.points[this.markers.ruler.points.length-1];
 			const dlng = Math.abs(lng - last_point.lng);
 			const dlat = Math.abs(lat - last_point.lat);
 			const distSq = dlng * dlng + dlat * dlat;
 
 			// If more than 3 units from the last point, add a temporary point for where the mouse is
-			if (distSq > 9) this.ruler.temp = { lng, lat };
-		} else this.ruler.temp = { lng, lat };
+			if (distSq > 9) this.markers.ruler.temp = { lng, lat };
+		} else this.markers.ruler.temp = { lng, lat };
 		this.updateRulerMarker();
-		console.debug('ruler', this.ruler);
+		console.debug('ruler', this.markers.ruler);
 	}
 
 	onRulerFinish(event) {
 		console.debug('onRulerFinish', event);
-		this.ruler.temp = null;
-		this.ruler.status = "finished";
-		console.debug('ruler', this.ruler);
+		this.markers.ruler.temp = null;
+		this.markers.ruler.status = "finished";
+		console.debug('ruler', this.markers.ruler);
 	}
 
 	onRulerReset(event) {
 		console.debug('onRulerReset', event);
-		this.ruler.points = [];
-		this.ruler.temp = null;
-		this.ruler.status = "inactive"
+		this.markers.ruler.points = [];
+		this.markers.ruler.temp = null;
+		this.markers.ruler.status = "inactive"
 		this.deleteRulerMarker();
-		console.debug('ruler', this.ruler);
+		console.debug('ruler', this.markers.ruler);
 	}
 
 	// --------------------------- //
@@ -540,7 +555,7 @@ export class MapMarkers {
 	}
 
 	getMarkersOnPoint(point) {
-		return this.map.queryRenderedFeatures(point, { layers: this.tokenMarkers.map(id => `token-layer-${id}`) });
+		return this.map.queryRenderedFeatures(point, { layers: this.markers.token.ids.map(id => `token-layer-${id}`) });
 	}
 
 	getTokensOnPoint(point) {
