@@ -258,15 +258,16 @@ export class MapMarkers {
 				data.totalDistanceUnit = "m";
 			}
 
+			let label = `${data.segment.toFixed(2)} ${data.segmentUnit}`
+			if (i > 1) label += `(${data.totalDistance.toFixed(2)} ${data.totalDistanceUnit})`
+
 			features.push({
 				type: "Feature",
 				geometry: {
 					type: "Point",
 					coordinates: [midLng, midLat]
 				},
-				properties: {
-					label: `${data.segment.toFixed(2)} ${data.segmentUnit} (${data.totalDistance.toFixed(2)} ${data.totalDistanceUnit})`
-				}
+				properties: { label }
 			});
 		}
 
