@@ -54,6 +54,7 @@ export function createMap() {
 	});
 
 	map.keyboard.disable();
+	map.dragRotate.disable();
 
 	return [map, projection];
 }

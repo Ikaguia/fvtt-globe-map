@@ -4,13 +4,22 @@ export class MapMarkers {
 	constructor(map, scene) {
 		this.map = map;
 		this.scene = scene;
-
+		// Tokens
 		this.tokenMarkers = new Set();
 		this.hovering = new Set();
-		this.draggingId = null;
-		this.draggingPoint = null;
-		this.draggingActive = false;
-
+		// Token Dragging
+		this.dragging = {
+			id: null,
+			point: null,
+			active: false,
+		}
+		// Ruler Measurement
+		this.ruler = {
+			status: "inactive",
+			points: [],
+			temp: null
+		}
+		// Initial Setup
 		this.addMapListeners();
 		this.update();
 	}
@@ -23,10 +32,56 @@ export class MapMarkers {
 	get width() { return this.scene.width * (1 + 2 * this.padding) - this.scene.grid.sizeX }
 	get height() { return this.scene.height * (1 + 2 * this.padding) }
 	get tokens() { return this.scene.tokens }
+	get rulerCoordinates() {
+		const coords = [...this.ruler.points];
+		if (this.ruler.temp) coords.push(this.ruler.temp);
+		return coords.map(p => [p.lng, p.lat]);
+	}
+	get rulerSourceData() {
+		return {
+			type: "Feature",
+			geometry: {
+				type: "LineString",
+				coordinates: this.rulerCoordinates
+			}
+		}
+	}
+
 
 	// --------------------------- //
 	// Marker Creation/Updates     //
 	// --------------------------- //
+
+	update() {
+		const oldIds = new Set(this.tokenMarkers);
+		const newIDs = new Set(this.tokens.map(t => t.id));
+		const toDelete = oldIds.difference(newIDs);
+		const toUpdate = oldIds.intersection(newIDs);
+		const toCreate = newIDs.difference(oldIds);
+
+		// Clear deleted markers
+		toDelete.forEach(id => this.deleteTokenMarker(id));
+		// Update old markers
+		toUpdate.forEach(id => this.updateTokenMarker(this.tokens.get(id)));
+		// Create new markers
+		toCreate.forEach(id => this.createTokenMarker(this.tokens.get(id)));
+	}
+
+	// Token Markers
+
+	tokenSourceData(lng, lat) {
+		return {
+			type: "FeatureCollection",
+			features: [{
+				type: "Feature",
+				geometry: {
+					type: "Point",
+					coordinates: [lng, lat]
+				},
+				properties: {}
+			}]
+		};
+	}
 
 	createTokenMarker(token) {
 		this.createImage(token);
@@ -47,22 +102,12 @@ export class MapMarkers {
 	createTokenSourceLayer(token) {
 		const id = token.id ?? token._id;
 		const { x, y } = token;
-		const { lat, lon } = this.sceneToLatLon(x, y);
+		const { lng, lat } = this.sceneToLngLat(x, y);
 
-		console.log(`Creating source and layer for token ${id} at (${lon}, ${lat})`);
+		console.log(`Creating source and layer for token ${id} at (${lng}, ${lat})`);
 		this.map.addSource(`token-source-${id}`, {
 			type: "geojson",
-			data: {
-				type: "FeatureCollection",
-				features: [{
-					type: "Feature",
-					geometry: {
-						type: "Point",
-						coordinates: [lon, lat],
-					},
-					properties: {}
-				}]
-			}
+			data: this.tokenSourceData(lng, lat),
 		});
 
 		this.map.addLayer({
@@ -113,28 +158,16 @@ export class MapMarkers {
 
 	updateTokenSource(token) {
 		const id = token.id ?? token._id;
-		if (id === this.draggingId) return;
+		if (id === this.dragging.id) return;
 		const { x, y } = token;
-		const { lat, lon } = this.sceneToLatLon(x, y);
+		const { lng, lat } = this.sceneToLngLat(x, y);
 
-		// console.log(`Updating source for token ${id} at (${lon}, ${lat})`);
+		// console.log(`Updating source for token ${id} at (${lng}, ${lat})`);
 		const sourceId = `token-source-${id}`;
 		const source = this.map.getSource(sourceId);
 		if (!source) return;
 
-		const newData = {
-			type: "FeatureCollection",
-			features: [{
-				type: "Feature",
-				geometry: {
-					type: "Point",
-					coordinates: [lon, lat]
-				},
-				properties: {}
-			}]
-		};
-
-		source.setData(newData);
+		source.setData(this.tokenSourceData(lng, lat));
 	}
 
 	deleteTokenMarker(id) {
@@ -143,19 +176,106 @@ export class MapMarkers {
 		this.tokenMarkers.delete(id);
 	}
 
-	update() {
-		const oldIds = new Set(this.tokenMarkers);
-		const newIDs = new Set(this.tokens.map(t => t.id));
-		const toDelete = oldIds.difference(newIDs);
-		const toUpdate = oldIds.intersection(newIDs);
-		const toCreate = newIDs.difference(oldIds);
+	// Ruler Markers
 
-		// Clear deleted markers
-		toDelete.forEach(id => this.deleteTokenMarker(id));
-		// Update old markers
-		toUpdate.forEach(id => this.updateTokenMarker(this.tokens.get(id)));
-		// Create new markers
-		toCreate.forEach(id => this.createTokenMarker(this.tokens.get(id)));
+	createRulerMarker() {
+		// Ruler lines
+		this.map.addSource("ruler-lines-source", {
+			type: "geojson",
+			data: this.rulerSourceData
+		});
+		this.map.addLayer({
+			id: "ruler-lines-layer",
+			type: "line",
+			source: "ruler-lines-source",
+			paint: {
+				"line-color": "#ff0000",
+				"line-width": 3
+			}
+		});
+
+		// Ruler labels
+		this.map.addSource("ruler-labels-source", {
+			type: "geojson",
+			data: {
+				type: "FeatureCollection",
+				features: []
+			}
+		});
+		this.map.addLayer({
+			id: "ruler-labels-layer",
+			type: "symbol",
+			source: "ruler-labels-source",
+			layout: {
+				"text-field": ["get", "label"],
+				"text-size": 24,
+				"text-anchor": "top",
+				"text-offset": [0, 1],
+				"symbol-placement": "point",
+				"text-font": ["NotoSans-Medium"],
+				"text-allow-overlap": true,
+				"text-ignore-placement": true
+			},
+			paint: {
+				"text-color": "#ffffff",
+				"text-halo-color": "#000000",
+				"text-halo-width": 1
+			}
+		});
+	}
+
+	updateRulerMarker() {
+		const coords = this.rulerCoordinates;
+		const features = [];
+		let totalDistance = 0;
+
+		for (let i = 1; i < coords.length; i++) {
+			const [lng1, lat1] = coords[i - 1];
+			const [lng2, lat2] = coords[i];
+
+			// Midpoint for label
+			const midLng = (lng1 + lng2) / 2;
+			const midLat = (lat1 + lat2) / 2;
+
+			// Haversine or flat Euclidean approx (depends on your use case)
+			const dx = lng2 - lng1;
+			const dy = lat2 - lat1;
+			const segment = Math.sqrt(dx * dx + dy * dy);
+			totalDistance += segment;
+
+			features.push({
+				type: "Feature",
+				geometry: {
+					type: "Point",
+					coordinates: [midLng, midLat]
+				},
+				properties: {
+					label: `${segment.toFixed(2)} (${totalDistance.toFixed(2)})`
+				}
+			});
+		}
+
+		// Update the line itself
+		const lineSource = this.map.getSource("ruler-lines-source");
+		lineSource?.setData(this.rulerSourceData);
+
+		// Update the labels
+		const labelSource = this.map.getSource("ruler-labels-source");
+		labelSource?.setData({ type: "FeatureCollection", features });
+
+
+
+		console.debug("Label features:", features);
+		this.map.setLayoutProperty("ruler-labels-layer", "visibility", "none");
+		this.map.setLayoutProperty("ruler-labels-layer", "visibility", "visible");
+		console.assert(this.map.getLayer("ruler-labels-layer"), "Label layer is missing");
+	}
+
+	deleteRulerMarker() {
+		if (this.map.getLayer("ruler-lines-layer")) this.map.removeLayer("ruler-lines-layer");
+		if (this.map.getSource("ruler-lines-source")) this.map.removeSource("ruler-lines-source");
+		if (this.map.getLayer("ruler-labels-layer")) this.map.removeLayer("ruler-labels-layer");
+		if (this.map.getSource("ruler-labels-source")) this.map.removeSource("ruler-labels-source");
 	}
 
 	// --------------------------- //
@@ -173,11 +293,22 @@ export class MapMarkers {
 	// Primary listeners
 
 	onMapClick(event) {
-		const ids = this.getTokensOnPoint(event.point);
+		const ctrl = event.originalEvent.ctrlKey;
 
-		for (const id of ids) {
-			const token = this.scene.tokens.get(id);
-			this.onTokenClick(event, token);
+		// Ruler measurement logic
+		if (ctrl) {
+			if (this.ruler.status === "finished") this.onRulerReset(event);
+			this.onRulerAdd(event);
+		} else if (this.ruler.status === "active") {
+			this.onRulerFinish(event);
+		}
+		// Regular token click logic
+		else {
+			const ids = this.getTokensOnPoint(event.point);
+			for (const id of ids) {
+				const token = this.scene.tokens.get(id);
+				this.onTokenClick(event, token);
+			}
 		}
 	}
 
@@ -202,7 +333,9 @@ export class MapMarkers {
 			this.hovering = newIDs;
 		}
 		// Trigger token drag events
-		if (this.draggingId) this.onTokenDrag(event, this.draggingId);
+		if (this.dragging.id) this.onTokenDrag(event, this.dragging.id);
+		// Trigger ruler drag events
+		if (this.ruler.status === "active") this.onRulerDrag(event);
 	}
 
 	onMouseLeave(event) {
@@ -220,17 +353,17 @@ export class MapMarkers {
 	}
 
 	onMouseUp(event) {
-		if (this.draggingId) this.onTokenRelease(event, this.draggingId);
+		if (this.dragging.id) this.onTokenRelease(event, this.dragging.id);
 	}
 
-	// Secondary listeners
+	// Token handlers
 
 	onTokenHover(event, token, entering=true) {
 		if (entering) {
-			if (!this.draggingActive) this.map.getCanvas().style.cursor = "pointer";
+			if (!this.dragging.active) this.map.getCanvas().style.cursor = "pointer";
 			// canvas.tokens.hud.renderHover(token, { hoverOutOthers: true });
 		} else {
-			if (!this.draggingActive) this.map.getCanvas().style.cursor = "";
+			if (!this.dragging.active) this.map.getCanvas().style.cursor = "";
 			// canvas.tokens.hud.clear();
 		}
 	}
@@ -242,9 +375,9 @@ export class MapMarkers {
 	onTokenGrab(event, id) {
 		const token = this.scene.tokens.get(id);
 		if (token) {
-			this.draggingId = id;
-			this.draggingPoint = event.point;
-			this.draggingActive = false;
+			this.dragging.id = id;
+			this.dragging.point = event.point;
+			this.dragging.active = false;
 			this.map.dragPan.disable();
 			this.map.getCanvas().style.cursor = "grabbing";
 		}
@@ -252,16 +385,15 @@ export class MapMarkers {
 
 	onTokenDrag(event, id) {
 		// Start dragging if mouse moved far enough
-		if (!this.draggingActive) {
-			const dx = event.point.x - this.draggingPoint.x;
-			const dy = event.point.y - this.draggingPoint.y;
+		if (!this.dragging.active) {
+			const dx = event.point.x - this.dragging.point.x;
+			const dy = event.point.y - this.dragging.point.y;
 			const distSq = dx * dx + dy * dy;
-			if (distSq > 9) { // 3px threshold (squared)
-				this.draggingActive = true;
-			}
+			// 3px threshold (squared)
+			this.dragging.active = distSq > 9;
 		}
 
-		if (this.draggingActive) {
+		if (this.dragging.active) {
 			const { lng, lat } = this.map.unproject(event.point);
 			const source = this.map.getSource(`token-source-${id}`);
 			if (!source) return;
@@ -282,36 +414,87 @@ export class MapMarkers {
 	}
 
 	onTokenRelease(event, id) {
-		if (this.draggingActive) {
+		if (this.dragging.active) {
 			const token = this.scene.tokens.get(id);
 			if (!token) return;
 
 			// Convert lng/lat → Foundry scene coordinates
 			const { lng, lat } = this.map.unproject(event.point);
-			const { x, y } = this.latLonToScene(lat, lng);
+			const { x, y } = this.lngLatToScene(lng, lat);
 
 			token.update({ x, y }, { animation: { duration: 1000 } });
 			token.object.control();
 		}
-		this.draggingId = null;
-		this.draggingPoint = null;
-		this.draggingActive = false;
+		this.dragging.id = null;
+		this.dragging.point = null;
+		this.dragging.active = false;
 		this.map.dragPan.enable();
 		this.map.getCanvas().style.cursor = "";
+	}
+
+	// Ruler handlers
+
+	onRulerAdd(event) {
+		console.debug('onRulerAdd', event);
+		const { lng, lat } = this.map.unproject(event.point);
+		this.ruler.points.push({ lng, lat });
+		this.ruler.temp = null;
+
+		if (this.ruler.status === "inactive") {
+			this.ruler.status = "active";
+			this.createRulerMarker();
+		} else {
+			this.updateRulerMarker();
+		}
+		console.debug('ruler', this.ruler);
+	}
+
+	onRulerDrag(event) {
+		console.debug('onRulerDrag', event);
+		if (this.ruler.status !== "active" || this.ruler.points.length === 0) return;
+		const { lng, lat } = this.map.unproject(event.point);
+
+		if (!this.ruler.temp) {
+			const last_point = this.ruler.points[this.ruler.points.length-1];
+			const dlng = Math.abs(lng - last_point.lng);
+			const dlat = Math.abs(lat - last_point.lat);
+			const distSq = dlng * dlng + dlat * dlat;
+
+			// If more than 3 units from the last point, add a temporary point for where the mouse is
+			if (distSq > 9) this.ruler.temp = { lng, lat };
+		} else this.ruler.temp = { lng, lat };
+		this.updateRulerMarker();
+		console.debug('ruler', this.ruler);
+	}
+
+	onRulerFinish(event) {
+		console.debug('onRulerFinish', event);
+		this.ruler.temp = null;
+		this.ruler.status = "finished";
+		console.debug('ruler', this.ruler);
+	}
+
+	onRulerReset(event) {
+		console.debug('onRulerReset', event);
+		this.ruler.points = [];
+		this.ruler.temp = null;
+		this.ruler.status = "inactive"
+		this.deleteRulerMarker();
+		console.debug('ruler', this.ruler);
 	}
 
 	// --------------------------- //
 	// Helpers                     //
 	// --------------------------- //
 
-	sceneToLatLon(x, y) {
-		const lon = Math.clamp((x / this.width) * 360 - 180, -180, 180);
+	sceneToLngLat(x, y) {
+		const lng = Math.clamp((x / this.width) * 360 - 180, -180, 180);
 		const lat = Math.clamp(90 - (y / this.height) * 180, -90, 90);
-		return { lat, lon };
+		return { lng, lat };
 	}
 
-	latLonToScene(lat, lon) {
-		const x = Math.clamp(((lon + 180) / 360) * this.width, 0, this.width);
+	lngLatToScene(lng, lat) {
+		const x = Math.clamp(((lng + 180) / 360) * this.width, 0, this.width);
 		const y = Math.clamp(((90 - lat) / 180) * this.height, 0, this.height);
 		return { x, y };
 	}
