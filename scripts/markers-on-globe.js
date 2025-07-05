@@ -6,6 +6,7 @@ export class MapMarkers {
 	constructor(map, scene) {
 		this.map = map;
 		this.scene = scene;
+		this.hooks = new Set();
 		// Tokens
 		this.tokenMarkers = new Set();
 		this.hovering = new Set();
@@ -23,7 +24,18 @@ export class MapMarkers {
 		}
 		// Initial Setup
 		this.addMapListeners();
+		this.addFoundryHooks();
 		this.update();
+	}
+
+	destroy() {
+		this.map.remove();
+		this.map = null;
+		this.ruler = {};
+		this.dragging = {};
+		this.hovering.clear();
+		this.tokenMarkers.clear();
+		this.clearFoundryHooks();
 	}
 
 	// --------------------------- //
@@ -297,6 +309,25 @@ export class MapMarkers {
 		this.map.on("mousedown", (e) => this.onMouseDown(e));
 		this.map.on("mouseup", (e) => this.onMouseUp(e));
 		this.map.getCanvas().addEventListener("mouseleave", (e) => this.onMouseLeave(e));
+	}
+
+	addFoundryHook(hook, foo) {
+		const id = Hooks.on(hook, foo);
+		this.hooks.add([hook, id]);
+	}
+
+	addFoundryHooks() {
+		// Token movement
+		this.addFoundryHook("createToken", (token) => { this.createTokenMarker(token); });
+		this.addFoundryHook("updateToken", (token, upd) => { this.updateTokenMarker(token, "texture" in upd); });
+		this.addFoundryHook("refreshToken", (token) => { this.updateTokenMarker(token.document); });
+		this.addFoundryHook("deleteToken", (token) => { this.deleteTokenMarker(token); });
+		this.addFoundryHook("updateScene", () => { this.update(); });
+	}
+
+	clearFoundryHooks() {
+		for (const [hookName, hookID] of this.hooks) Hooks.off(hookName, hookID);
+		this.hooks.clear();
 	}
 
 	// Primary listeners

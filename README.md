@@ -19,6 +19,7 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 ### [UNRELEASED]
 
 - Minimized map is now interactable
+- Globe will be removed when switching scenes
 
 ### [0.0.5]
 

@@ -9,7 +9,21 @@ Hooks.once('ready', async function() {
 	const maplibregl = window.maplibregl;
 });
 
+Hooks.on("canvasTearDown", () => {
+	const mod = game.modules.get("fvtt-globe-map");
+	// Remove map instance
+	mod.mapMarkers?.destroy();
+	mod.mapMarkers = null;
+	// Remove map container
+	const container = document.getElementById("maplibre-container");
+	container?.remove();
+	// Remove toggle button
+	const button = document.getElementById("globe-toggle-button");
+	button?.remove();
+});
+
 Hooks.on("canvasReady", (canvas) => {
+	const mod = game.modules.get("fvtt-globe-map");
 	const enabled = canvas.scene.getFlag("fvtt-globe-map", "enabled");
 	if (!enabled) return;
 
@@ -26,12 +40,19 @@ Hooks.on("canvasReady", (canvas) => {
 	});
 	document.body.appendChild(container);
 
+	// Map Markers
+	Hooks.once("fvtt-globe-map.style.load", (map) => {
+		mod.mapMarkers?.destroy();
+		mod.mapMarkers = new MapMarkers(map, canvas.scene);
+	});
+
 	// Map
 	const [map, projection] = createMap();
 
 	// Maximize/Minimize button
 	const toggleBtn = document.createElement("button");
-	toggleBtn.innerText = "—"; // "—" for minimize, "☐" for maximize later
+	toggleBtn.id = "globe-toggle-button";
+	toggleBtn.innerText = "—";
 	Object.assign(toggleBtn.style, {
 		position: "absolute",
 		top: "10px",
@@ -83,17 +104,6 @@ Hooks.on("canvasReady", (canvas) => {
 			toggleBtn.innerText = "—"; // Change button back to "minimize"
 			minimized = false;
 		}
-	});
-
-	Hooks.once("fvtt-globe-map.style.load", (map) => {
-		// Tokens on map
-		const mapMarkers = new MapMarkers(map, canvas.scene);
-		// Token movement
-		Hooks.on("createToken", (token) => { mapMarkers.createTokenMarker(token); });
-		Hooks.on("updateToken", (token, upd) => { mapMarkers.updateTokenMarker(token, "texture" in upd); });
-		Hooks.on("refreshToken", (token) => { mapMarkers.updateTokenMarker(token.document); });
-		Hooks.on("deleteToken", (token) => { mapMarkers.deleteTokenMarker(token); });
-		Hooks.on("updateScene", () => { mapMarkers.update(); });
 	});
 });
 
