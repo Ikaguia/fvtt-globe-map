@@ -49,7 +49,7 @@ Hooks.on("canvasReady", (canvas) => {
 	let minimized = false;
 	toggleBtn.addEventListener("click", () => {
 		if (!minimized) {
-			// Minimize: move container to top-right corner, shrink size, disable pointer
+			// Minimize: move container to top-right corner, shrink size
 			Object.assign(container.style, {
 				width: "20vw",
 				height: "20vh",
@@ -57,7 +57,6 @@ Hooks.on("canvasReady", (canvas) => {
 				left: "auto",
 				right: "60px",
 				bottom: "auto",
-				pointerEvents: "none",
 				border: "1px solid #ccc",
 				borderRadius: "5px",
 				boxShadow: "0 0 10px rgba(0,0,0,0.3)",
@@ -67,7 +66,7 @@ Hooks.on("canvasReady", (canvas) => {
 			toggleBtn.innerText = "☐";  // Change button to "maximize" icon
 			minimized = true;
 		} else {
-			// Maximize: restore full screen and pointer interaction
+			// Maximize: restore full screen
 			Object.assign(container.style, {
 				width: "100%",
 				height: "100%",
@@ -75,7 +74,6 @@ Hooks.on("canvasReady", (canvas) => {
 				left: 0,
 				right: "auto",
 				bottom: "auto",
-				pointerEvents: "auto",
 				border: "none",
 				borderRadius: "0",
 				boxShadow: "none",

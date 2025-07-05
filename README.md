@@ -16,6 +16,10 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 
 ## Changelog
 
+### [UNRELEASED]
+
+- Minimized map is now interactable
+
 ### [0.0.5]
 
 - Added measurement ruler (cntrl + click to start)
