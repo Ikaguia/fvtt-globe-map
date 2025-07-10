@@ -31,4 +31,13 @@ export class Marker {
 	// Hooks
 	addFoundryHooks() {}
 	addMapListeners() {}
+
+	// Event handlers
+	//// Generic
+	onMouseMove(event, hovering) {}
+	onLeaveMap(event) {}
+	//// Specific Marker
+	onClick(event, id) {}
+	onGrab(event, id) {}
+	onRelease(event, id) {}
 }
