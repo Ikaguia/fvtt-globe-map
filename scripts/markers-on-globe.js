@@ -13,15 +13,7 @@ export class MapMarkers {
 			// Tokens
 			token: new Marker.Token(this),
 			// Notes
-			note: {
-				ids: new Set(),
-				hovering: new Set(),
-				dragging: {
-					id: null,
-					point: null,
-					active: false,
-				},
-			},
+			note: new Marker.Note(this),
 			ruler: {
 				status: "inactive",
 				points: [],
@@ -37,9 +29,6 @@ export class MapMarkers {
 	destroy() {
 		for (const marker of Object.values(this.markers)) marker.destroy?.();
 		this.markers.ruler = {};
-		this.markers.note.dragging = {};
-		this.markers.note.hovering.clear();
-		this.markers.note.ids.clear();
 		this.clearFoundryHooks();
 		this.map.remove();
 		this.map = null;
@@ -52,7 +41,6 @@ export class MapMarkers {
 	get padding() { return this.scene.padding }
 	get width() { return this.scene.width * (1 + 2 * this.padding) - this.scene.grid.sizeX }
 	get height() { return this.scene.height * (1 + 2 * this.padding) }
-	get tokens() { return this.scene.tokens }
 	get rulerCoordinates() {
 		const coords = [...this.markers.ruler.points];
 		if (this.markers.ruler.temp) coords.push(this.markers.ruler.temp);

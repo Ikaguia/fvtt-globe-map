@@ -8,6 +8,7 @@ export class TokenMarker extends ItemMarker {
 	// Utility functions
 	getItem(id) { return this.scene.tokens.get(id); }
 
+	// Hooks
 	addFoundryHooks() {
 		super.addFoundryHooks();
 		// Token movement

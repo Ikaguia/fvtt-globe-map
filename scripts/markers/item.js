@@ -220,7 +220,7 @@ export class ItemMarker extends Marker {
 	}
 	onClick(event, id) {
 		const item = this.getItem(id);
-		item?.object?.control({ releaseOthers: true });
+		item?.object?.control?.({ releaseOthers: true });
 	}
 	onGrab(event, id) {
 		if (!id) return;
