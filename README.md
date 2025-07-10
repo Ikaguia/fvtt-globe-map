@@ -21,9 +21,9 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 - Minimized map is now interactable
 - Globe will be removed when switching scenes
 - Map Journal Entries have been added
-- - Scene Journal Entries will be rendered on map, if their image is not a .svg file
-- - They can be dragged around just like tokens
-- - Clicking on one on the map will open the relevant Journal Entry
+  - Scene Journal Entries will be rendered on map, if their image is not a .svg file
+  - They can be dragged around just like tokens
+  - Clicking on one on the map will open the relevant Journal Entry
 
 ### [0.0.5]
 
