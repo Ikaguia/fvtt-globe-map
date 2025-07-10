@@ -5,10 +5,6 @@ Hooks.once('init', async function() {
 	// CONFIG.debug.hooks = true;
 });
 
-Hooks.once('ready', async function() {
-	const maplibregl = window.maplibregl;
-});
-
 Hooks.on("canvasTearDown", () => {
 	const mod = game.modules.get("fvtt-globe-map");
 	// Remove map instance

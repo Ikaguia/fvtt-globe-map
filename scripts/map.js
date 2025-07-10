@@ -48,8 +48,6 @@ export function createMap() {
 
 	map.on("style.load", () => {
 		map.setProjection({ type: projection });
-		console.log("Map loaded, checking sources...");
-		console.log(map.getStyle().sources);
 		Hooks.call("fvtt-globe-map.style.load", map);
 	});
 

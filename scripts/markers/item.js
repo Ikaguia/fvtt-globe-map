@@ -44,7 +44,7 @@ export class ItemMarker extends Marker {
 		if (!id || !item) return;
 		this.ids.delete(id);
 		this.deleteFeature(data);
-		super.deleteMaker(data);
+		super.deleteMarker(data);
 	}
 
 	// Item Functions
@@ -168,15 +168,15 @@ export class ItemMarker extends Marker {
 	}
 
 	// Getters
-	get type() { return "item"; }
-	get sceneItems() { return new Set(); }
+	get type() { throw new Error(`${this.constructor.name}.type() must be implemented.`); }
+	get sceneItems() { throw new Error(`${this.constructor.name}.sceneItems() must be implemented.`); }
 	get sourceID() { return `${this.type}-source`; }
 	get source() { return this.map.getSource(this.sourceID); }
 	get layerID() { return `${this.type}-layer`; }
 	get layer() { return this.map.getLayer(this.layerID); }
 
 	// Utility functions
-	getItem(id) { return null; }
+	getItem(id) { throw new Error(`${this.constructor.name}.getItem() must be implemented.`); }
 	getId(item) { return item.id ?? item._id; }
 	getImageURL(item) { return item.texture.src; }
 	getImageID(id) { return `${this.type}-image-${id}` }
