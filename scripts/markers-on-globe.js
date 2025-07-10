@@ -15,6 +15,8 @@ export class MapMarkers {
 			new Marker.Note(this),
 			// Ruler
 			new Marker.Ruler(this),
+			// Pings
+			new Marker.Ping(this),
 		];
 		// Initial Setup
 		this.addMapListeners();

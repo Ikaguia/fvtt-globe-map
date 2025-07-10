@@ -1,8 +1,17 @@
 import { MapMarkers } from "./markers-on-globe.js";
 import { createMap } from "./map.js";
 
-Hooks.once('init', async function() {
+Hooks.once('ready', async function() {
 	// CONFIG.debug.hooks = true;
+	// Patch foundry's ping to call a hook as well
+	if (!canvas.controls.handlePing._patchedForGlobeMap) {
+		const originalPing = canvas.controls.handlePing;
+		canvas.controls.handlePing = function(...args) {
+			Hooks.callAll("fvtt-globe-map.handlePing", ...args);
+			return originalPing.call(this, ...args);
+		};
+		canvas.controls.handlePing._patchedForGlobeMap = true;
+	}
 });
 
 Hooks.on("canvasTearDown", () => {
