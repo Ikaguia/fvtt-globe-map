@@ -29,19 +29,24 @@ export class ItemMarker extends Marker {
 	createMarker(data={}) {
 		super.createMarker(data);
 		const { id } = data;
-		if (!id) return;
+		if (!id || this.ids.has(id) || !this.itemVisible(data)) return;
 		this.ids.add(id);
 		this.createImage(data);
 		this.createFeature(data);
 	}
 	updateMarker(data={}) {
 		super.updateMarker(data);
-		if (data.updateImage === true) this.updateImage(data);
-		this.updateFeature(data);
+		const { id } = data;
+		if (!this.itemVisible(data)) this.deleteMarker(data);
+		else {
+			if (!this.ids.has(id)) this.createMarker(data);
+			if (data.updateImage === true) this.updateImage(data);
+			this.updateFeature(data);
+		}
 	}
 	deleteMarker(data={}) {
-		const { item, id } = data;
-		if (!id || !item) return;
+		const { id } = data;
+		if (!id || !this.ids.has(id)) return;
 		this.ids.delete(id);
 		this.deleteFeature(data);
 		super.deleteMarker(data);
@@ -105,7 +110,6 @@ export class ItemMarker extends Marker {
 		const { lng, lat } = this.sceneToLngLat(x, y);
 		const imageID = this.getImageID(id);
 
-		const source = this.source;
 		this.features.push({
 			type: "Feature",
 			geometry: {
@@ -117,7 +121,7 @@ export class ItemMarker extends Marker {
 				imageID,
 			},
 		});
-		source.setData({ type: "FeatureCollection", features: this.features });
+		this.source?.setData?.({ type: "FeatureCollection", features: this.features });
 	}
 	// Update
 	async updateImage(data={}) {
@@ -147,11 +151,10 @@ export class ItemMarker extends Marker {
 			lat = lngLat.lat;
 		}
 
-		const source = this.source;
 		this.features.forEach(f => {
 			if (f.properties.id === id) f.geometry.coordinates = [lng, lat];
 		});
-		source.setData({ type: "FeatureCollection", features: this.features });
+		this.source?.setData?.({ type: "FeatureCollection", features: this.features });
 	}
 	// Delete
 	deleteSourceLayer(data={}) {
@@ -181,6 +184,14 @@ export class ItemMarker extends Marker {
 	getImageURL(item) { return item.texture.src; }
 	getImageID(id) { return `${this.type}-image-${id}` }
 	getImage(id) { return this.map.getImage(this.getImageID(id)); }
+	itemVisible(data) {
+		const item = data.item ?? this.getItem(data.id);
+		return item && (!item.hidden || game.user.isGM);
+	}
+	hasPermission(data, permission="OWNER") {
+		const item = data.item ?? this.getItem(data.id);
+		return item?.testUserPermission(game.user, permission);
+	}
 
 	// Hooks
 	// addFoundryHooks() {
@@ -193,7 +204,7 @@ export class ItemMarker extends Marker {
 	// Event handlers
 	//// Generic
 	onMouseMove(event, hovering) {
-		if (this.dragging.id) this.onDrag(event, this.dragging.id);
+		if (this.dragging.id) this.onDrag(event, { id: this.dragging.id });
 
 		const newIDs = new Set(hovering.map(f => f.properties.id));
 		const toUnhover = this.hovering.difference(newIDs);
@@ -227,8 +238,8 @@ export class ItemMarker extends Marker {
 	}
 	onGrab(event, properties={}) {
 		const { id } = properties;
-		if (!id) return;
-		for (const id of this.hovering) this.onHover(event, id, false);
+		if (!id || !this.hasPermission({ id }, "OWNER")) return;
+		for (const _id of this.hovering) this.onHover(event, _id, false);
 
 		this.dragging.id = id;
 		this.dragging.point = event.point;

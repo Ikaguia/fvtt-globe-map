@@ -16,6 +16,11 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 
 ## Changelog
 
+### [Unreleased]
+
+- Token/Note Markers now only show up when not hidden (or to GMs)
+- Notes will only be opened if you have at least limited permission
+
 ### [0.0.8]
 
 - Pathfinder Wiki Links have been integrated

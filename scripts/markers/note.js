@@ -7,6 +7,11 @@ export class NoteMarker extends ItemMarker {
 
 	// Utility functions
 	getItem(id) { return this.scene.notes.get(id); }
+	hasPermission(data, permission="OWNER") {
+		const item = data.item ?? this.getItem(data.id);
+		return item?.entry?.testUserPermission(game.user, permission);
+	}
+
 
 	// Hooks
 	addFoundryHooks() {
@@ -35,8 +40,8 @@ export class NoteMarker extends ItemMarker {
 	// Event handlers
 	onClick(event, properties={}) {
 		const { id } = properties;
-		if (!id) return;
 		const item = this.getItem(id);
-		item?.entry?.sheet?.render?.(true);
+		if (!id || !item || !this.hasPermission({ item }, "LIMITED")) return;
+		item.entry?.sheet?.render?.(true);
 	}
 }
