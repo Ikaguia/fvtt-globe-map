@@ -20,20 +20,10 @@ export class PingMarker extends Marker {
 		super.addFoundryHooks();
 
 		this.mapMarkers.addFoundryHook("fvtt-globe-map.handlePing", (user, position, {scene, style="pulse", pull=false, zoom=1, ...pingOptions}={}) => {
-			console.log("Ping received:");
-			console.log("user", user);
-			console.log("position", position);
-			console.log("scene", scene);
-			console.log("style", style);
-			console.log("pull", pull);
-			console.log("zoom", zoom);
-			console.log("pingOptions", pingOptions);
 			if (!canvas.scene?.getFlag("fvtt-globe-map", "enabled")) return;
 
 			const { x, y } = position;
-			console.debug(x, y);
 			const { lng, lat } = this.sceneToLngLat(x, y);
-			console.debug(lng, lat);
 			let screenPoint = this.map.project([lng, lat]);
 
 			// If pan ping, animate to position and zoom
