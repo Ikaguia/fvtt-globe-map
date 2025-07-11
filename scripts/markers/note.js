@@ -33,7 +33,9 @@ export class NoteMarker extends ItemMarker {
 	}
 
 	// Event handlers
-	onClick(event, id) {
+	onClick(event, properties={}) {
+		const { id } = properties;
+		if (!id) return;
 		const item = this.getItem(id);
 		item?.entry?.sheet?.render?.(true);
 	}

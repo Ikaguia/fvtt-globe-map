@@ -37,7 +37,7 @@ export class Marker {
 	onMouseMove(event, hovering) {}
 	onLeaveMap(event) {}
 	//// Specific Marker
-	onClick(event, id) {}
-	onGrab(event, id) {}
-	onRelease(event, id) {}
+	onClick(event, properties={}) {}
+	onGrab(event, properties={}) {}
+	onRelease(event, properties={}) {}
 }

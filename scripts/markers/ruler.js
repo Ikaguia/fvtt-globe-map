@@ -167,7 +167,7 @@ export class RulerMarker extends Marker {
 	// }
 
 	// Event handlers
-	onMouseMove(event) {
+	onMouseMove(event, properties={}) {
 		if (this.status === "active") {
 			const { lng, lat } = this.map.unproject(event.point);
 
@@ -183,7 +183,7 @@ export class RulerMarker extends Marker {
 			this.updateSourceLayer();
 		}
 	}
-	onClick(event) {
+	onClick(event, properties={}) {
 		const ctrl = event.originalEvent.ctrlKey;
 		const { lng, lat } = this.map.unproject(event.point);
 		// Ruler measurement logic

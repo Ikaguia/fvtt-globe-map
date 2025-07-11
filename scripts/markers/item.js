@@ -206,7 +206,8 @@ export class ItemMarker extends Marker {
 		for (const id of this.hovering) this.onHover(event, id, false);
 	}
 	//// Specific Item
-	onHover(event, id, entering=true) {
+	onHover(event, properties={}, entering=true) {
+		const { id } = properties;
 		if (!id) return;
 		if (!this.dragging.active) {
 			if (entering) {
@@ -218,11 +219,14 @@ export class ItemMarker extends Marker {
 			}
 		}
 	}
-	onClick(event, id) {
+	onClick(event, properties={}) {
+		const { id } = properties;
+		if (!id) return;
 		const item = this.getItem(id);
 		item?.object?.control?.({ releaseOthers: true });
 	}
-	onGrab(event, id) {
+	onGrab(event, properties={}) {
+		const { id } = properties;
 		if (!id) return;
 		for (const id of this.hovering) this.onHover(event, id, false);
 
@@ -232,7 +236,8 @@ export class ItemMarker extends Marker {
 		this.map.dragPan.disable();
 		this.map.getCanvas().style.cursor = "grabbing";
 	}
-	onDrag(event, id) {
+	onDrag(event, properties={}) {
+		const { id } = properties;
 		if (!id) return;
 		// Start dragging if mouse moved far enough
 		if (!this.dragging.active) {
@@ -248,7 +253,8 @@ export class ItemMarker extends Marker {
 			this.updateFeature({ id, lng, lat });
 		}
 	}
-	onRelease(event, id) {
+	onRelease(event, properties={}) {
+		const { id } = properties;
 		if (!id) return;
 		if (this.dragging.active) {
 			// Convert lng/lat → Foundry scene coordinates
