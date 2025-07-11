@@ -22,6 +22,7 @@ export class WikiLinkMarker extends Marker {
 
 	// Event handlers
 	onClick(event, properties) {
+		if (game.user.role < 2) return; // Minimum of trusted player
 		if (!event?.originalEvent?.altKey) return;
 		if (!properties?.link) return;
 
@@ -30,6 +31,7 @@ export class WikiLinkMarker extends Marker {
 		window.open(url, "_blank");
 	}
 	onMouseMove(event, hovering) {
+		if (game.user.role < 2) return; // Minimum of trusted player
 		const alt = event?.originalEvent?.altKey;
 		const hasLink = hovering?.filter?.(f => f.properties.link).length;
 		if (alt && hasLink) this.hover();
