@@ -17,6 +17,8 @@ export class MapMarkers {
 			new Marker.Ruler(this),
 			// Pings
 			new Marker.Ping(this),
+			// Wiki Links
+			new Marker.Wiki(this),
 		];
 		// Initial Setup
 		this.addMapListeners();
@@ -37,7 +39,6 @@ export class MapMarkers {
 	get padding() { return this.scene.padding }
 	get width() { return this.scene.width * (1 + 2 * this.padding) - this.scene.grid.sizeX }
 	get height() { return this.scene.height * (1 + 2 * this.padding) }
-
 
 	// --------------------------- //
 	// Listeners                   //
@@ -72,9 +73,9 @@ export class MapMarkers {
 	onMapClick(event) {
 		const features = this.getFeaturesOnPoint(event.point);
 		for (const marker of this.markers) {
-			const markerFeatures = features[marker.layerID];
-			if (markerFeatures?.length) {
-				for (const feature of markerFeatures) marker.onClick?.(event, feature.properties.id);
+			const markerFeatures = this.collectMarkerFeatures(marker, features);
+			if (markerFeatures.length) {
+				for (const feature of markerFeatures) marker.onClick?.(event, feature.properties);
 			} else {
 				marker.onClick?.(event);
 			}
@@ -83,7 +84,10 @@ export class MapMarkers {
 
 	onMouseMove(event) {
 		const features = this.getFeaturesOnPoint(event.point);
-		for (const marker of this.markers) marker.onMouseMove?.(event, features[marker.layerID]);
+		for (const marker of this.markers) {
+			const markerFeatures = this.collectMarkerFeatures(marker, features);
+			marker.onMouseMove?.(event, markerFeatures);
+		}
 	}
 
 	onMouseLeaveMap(event) {
@@ -93,9 +97,9 @@ export class MapMarkers {
 	onMouseDown(event) {
 		const features = this.getFeaturesOnPoint(event.point);
 		for (const marker of this.markers) {
-			const markerFeatures = features[marker.layerID];
-			if (markerFeatures?.length) {
-				for (const feature of markerFeatures) marker.onGrab?.(event, feature.properties.id);
+			const markerFeatures = this.collectMarkerFeatures(marker, features);
+			if (markerFeatures.length) {
+				for (const feature of markerFeatures) marker.onGrab?.(event, feature.properties);
 			} else {
 				marker.onGrab?.(event);
 			}
@@ -106,9 +110,9 @@ export class MapMarkers {
 		// Regular mouse up logic
 		const features = this.getFeaturesOnPoint(event.point);
 		for (const marker of this.markers) {
-			const markerFeatures = features[marker.layerID];
-			if (markerFeatures?.length) {
-				for (const feature of markerFeatures) marker.onRelease?.(event, feature.properties.id);
+			const markerFeatures = this.collectMarkerFeatures(marker, features);
+			if (markerFeatures.length) {
+				for (const feature of markerFeatures) marker.onRelease?.(event, feature.properties);
 			} else {
 				marker.onRelease?.(event);
 			}
@@ -133,13 +137,23 @@ export class MapMarkers {
 
 	groupFeaturesByLayer(features, layers) {
 		const grouped = Object.fromEntries(layers.map(l => [l, []]));
-		for (const feature of features) grouped[feature.layer.id].push(feature);
+		for (const feature of features) {
+			const lid = feature.layer.id;
+			if (grouped[lid]) grouped[lid].push(feature);
+		}
 		return grouped;
 	}
 
-	getFeaturesOnPoint(point, layers=undefined) {
-		if (layers === undefined) layers = this.markers.map(m => m.layerID).filter(id => id !== undefined);
+	getFeaturesOnPoint(point, layers = undefined) {
+		if (layers === undefined) {
+			layers = this.markers.flatMap(m => m.layerIDs ?? []).filter(Boolean);
+		}
 		const features = this.map.queryRenderedFeatures(point, { layers });
 		return this.groupFeaturesByLayer(features, layers);
+	}
+
+	collectMarkerFeatures(marker, groupedFeatures) {
+		if (!marker.layerIDs?.length) return [];
+		return marker.layerIDs.flatMap(id => groupedFeatures[id] ?? []);
 	}
 }
