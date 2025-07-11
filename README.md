@@ -16,6 +16,12 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 
 ## Changelog
 
+### [0.0.7]
+
+- Pings can now be made on the map
+  - They are syncronized with scene pings
+  - [nothing/alt/shift] + Long Press for regular/alert/pan ping
+
 ### [0.0.6]
 
 - Minimized map is now interactable
