@@ -16,6 +16,12 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 
 ## Changelog
 
+### [0.0.8]
+
+- Pathfinder Wiki Links have been integrated
+  - Alt + Hover on a symbol or label that has an associated link, will change the cursor
+  - Alt + Click on such features will open the link on a new tab
+
 ### [0.0.7]
 
 - Pings can now be made on the map
