@@ -16,11 +16,12 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 
 ## Changelog
 
-### [Unreleased]
+### [0.0.9]
 
 - Token/Note Markers now only show up when not hidden (or to GMs)
 - Notes will only be opened if you have at least limited permission
 - Wiki Links are now restricted to trusted players +
+- Map data updated
 
 ### [0.0.8]
 
