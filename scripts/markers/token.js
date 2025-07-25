@@ -7,6 +7,9 @@ export class TokenMarker extends ItemMarker {
 
 	// Utility functions
 	getItem(id) { return this.scene.tokens.get(id); }
+	// getSize(id) { return 10000 * ((this.getItem(id)?.width ?? 1) * 1.0) / this.mapMarkers.gridWidth; }
+	getSize(id) { return this.getItem(id)?.width ?? 1; }
+	getScalable(id) { return (this.getItem(id)?.elevation ?? 0) === 0; }
 
 	// Hooks
 	addFoundryHooks() {
@@ -19,7 +22,8 @@ export class TokenMarker extends ItemMarker {
 		this.mapMarkers.addFoundryHook("updateToken", (token, upd) => { this.updateMarker({
 			item: token,
 			id: token.id,
-			updateImage: "texture" in upd,
+			updateImage: "texture" in upd || "width" in upd,
+			updateScalable: "altitude" in upd,
 		}); });
 		this.mapMarkers.addFoundryHook("refreshToken", (token) => { this.updateMarker({
 			item: token.document,

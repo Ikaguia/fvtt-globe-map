@@ -19,6 +19,8 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 ### [Unreleased]
 
 - Initial globe position is now based on initial scene position (use shift ping + 'capture current view' to set initial view)
+- Token/Note markers now scale with their size (width for tokens, icon size for notes)
+- Token/Note with an elevation of 0 are now 'geographically sized', while the rest are 'screen sized' (previous behaviour was always 'screen sized')
 
 ### [0.0.9]
 

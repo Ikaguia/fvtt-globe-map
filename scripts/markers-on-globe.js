@@ -40,6 +40,8 @@ export class MapMarkers {
 	get padding() { return this.scene.padding }
 	get width() { return this.scene.width * (1 + 2 * this.padding) - this.scene.grid.sizeX }
 	get height() { return this.scene.height * (1 + 2 * this.padding) }
+	get gridWidth() { return this.width / this.scene.grid.sizeX; }
+	get gridHeight() { return this.height / this.scene.grid.sizeY; }
 
 	// --------------------------- //
 	// Listeners                   //
@@ -155,7 +157,9 @@ export class MapMarkers {
 
 	collectMarkerFeatures(marker, groupedFeatures) {
 		if (!marker.layerIDs?.length) return [];
-		return marker.layerIDs.flatMap(id => groupedFeatures[id] ?? []);
+		const features = marker.layerIDs.flatMap(id => groupedFeatures[id] ?? []);
+		features.sort((a, b) => { return (a?.properties?.size ?? 1) - (b?.properties?.size ?? 1); });
+		return features;
 	}
 
 	setInitialViewFromScene() {

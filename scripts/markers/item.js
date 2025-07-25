@@ -9,19 +9,20 @@ export class ItemMarker extends Marker {
 		super.reset();
 		this.ids = new Set();
 		this.features = [];
+		this.scalableFeatures = [];
 		this.hovering = new Set();
 		this.dragging = {
 			id: null,
 			point: null,
 			active: false,
 		};
-		this.deleteSourceLayer();
-		this.createSourceLayer();
+		this.deleteSourceLayers();
+		this.createSourceLayers();
 
 		this.updateAll();
 	}
 	destroy() {
-		this.deleteSourceLayer();
+		this.deleteSourceLayers();
 		super.destroy();
 	}
 
@@ -67,7 +68,7 @@ export class ItemMarker extends Marker {
 		toDelete.forEach(id => this.deleteMarker({ item: this.getItem(id), id }));
 	}
 	// Create
-	createSourceLayer(data={}) {
+	createSourceLayers(data={}) {
 		if (!this.source) {
 			this.map.addSource(this.sourceID, {
 				type: "geojson",
@@ -89,6 +90,28 @@ export class ItemMarker extends Marker {
 				}
 			});
 		}
+		if (!this.scalableSource) {
+			this.map.addSource(this.scalableSourceID, {
+				type: "geojson",
+				data: {
+					type: "FeatureCollection",
+					features: []
+				}
+			});
+		}
+		if (!this.scalableLayer) {
+			this.map.addLayer({
+				id: this.scalableLayerID,
+				type: "symbol",
+				source: this.scalableSourceID,
+				layout: {
+					"icon-image": ["get", "imageID"],
+					"icon-size": this.worldRelativeIconSize(20, 400),
+					"icon-allow-overlap": true,
+					"icon-ignore-placement": true,
+				}
+			});
+		}
 	}
 	async createImage(data={}) {
 		const { item, id } = data;
@@ -97,20 +120,31 @@ export class ItemMarker extends Marker {
 		const imageID = this.getImageID(id);
 
 		const image = await this.map.loadImage(imageURL);
+		const size = this.getSize(id);
 		if (!this.map.hasImage(imageID)) {
+			const normalizedImage = await this.normalizeImageSize(image, 64 * size);
 			console.log(`Adding image for ${this.type}: ${id}, url: ${imageURL}`);
-			this.map.addImage(imageID, image.data);
+			this.map.addImage(imageID, normalizedImage);
 		}
 	}
 	createFeature(data={}) {
-		const { item, id } = data;
-		if (!id || !item) return;
+		let { id, item, lng, lat } = data;
+		if (!id) return;
 
-		const { x, y } = item;
-		const { lng, lat } = this.sceneToLngLat(x, y);
+		if (!lng || !lat) {
+			if (!item) return;
+			const { x, y } = item;
+			const lngLat = this.sceneToLngLat(x, y);
+			lng = lngLat.lng;
+			lat = lngLat.lat;
+		}
+
 		const imageID = this.getImageID(id);
 
-		this.features.push({
+		const scalable = this.getScalable(id);
+		const features = scalable ? this.scalableFeatures : this.features;
+		const source = scalable ? this.scalableSource : this.source;
+		features.push({
 			type: "Feature",
 			geometry: {
 				type: "Point",
@@ -121,7 +155,7 @@ export class ItemMarker extends Marker {
 				imageID,
 			},
 		});
-		this.source?.setData?.({ type: "FeatureCollection", features: this.features });
+		source?.setData?.({ type: "FeatureCollection", features });
 	}
 	// Update
 	async updateImage(data={}) {
@@ -129,15 +163,17 @@ export class ItemMarker extends Marker {
 		if (!id || !item) return;
 		const imageURL = this.getImageURL(item);
 		const imageID = this.getImageID(id);
+		const size = this.getSize(id);
 
 		const image = await this.map.loadImage(imageURL);
+		const normalizedImage = await this.normalizeImageSize(image, 64 * size);
 		if (this.map.hasImage(imageID)) {
 			console.log(`Updating image for ${this.type}: ${id}, url: ${imageURL}`);
-			this.map.updateImage(imageID, image.data);
+			this.map.removeImage(imageID);
 		} else {
 			console.log(`Adding image for ${this.type}: ${id}, url: ${imageURL}`);
-			this.map.addImage(imageID, image.data);
 		}
+		this.map.addImage(imageID, normalizedImage);
 	}
 	updateFeature(data={}) {
 		let { id, item, lng, lat } = data;
@@ -151,23 +187,51 @@ export class ItemMarker extends Marker {
 			lat = lngLat.lat;
 		}
 
-		this.features.forEach(f => {
-			if (f.properties.id === id) f.geometry.coordinates = [lng, lat];
-		});
-		this.source?.setData?.({ type: "FeatureCollection", features: this.features });
+		const feature1 = this.features.find(f => f.properties.id === id);
+		const feature2 = this.scalableFeatures.find(f => f.properties.id === id);
+		if (!!feature1 === !!feature2) {
+			this.deleteFeature(data);
+			this.createFeature(data);
+			return;
+		}
+
+		if (data.updateScalable) {
+			const scalable = this.getScalable(id);
+			if ((scalable && feature1) || (!scalable && feature2)) {
+				this.deleteFeature(data);
+				this.createFeature(data);
+				return;
+			}
+		}
+
+		const feature = feature1 || feature2;
+		const features = feature1 ? this.features : this.scalableFeatures;
+		const source = feature1 ? this.source : this.scalableSource;
+
+		feature.geometry.coordinates = [lng, lat];
+		source?.setData?.({ type: "FeatureCollection", features });
 	}
 	// Delete
-	deleteSourceLayer(data={}) {
+	deleteSourceLayers(data={}) {
 		if (this.source) this.map.removeSource(this.sourceID);
 		if (this.layer) this.map.removeLayer(this.layerID);
+		if (this.scalableSource) this.map.removeSource(this.scalableSourceID);
+		if (this.scalableLayer) this.map.removeLayer(this.scalableLayerID);
 	}
 	deleteFeature(data={}) {
 		const { id } = data;
 		if (!id) return;
 
-		const source = this.source;
-		this.features = this.features.filter(f => f.properties.id !== id);
-		source.setData({ type: "FeatureCollection", features: this.features });
+		const feature = this.features.findIndex(f => f.properties.id === id);
+		if (feature) {
+			this.features.splice(feature, 1);
+			this.source?.setData?.({ type: "FeatureCollection", features: this.features });
+		}
+		const scalableFeature = this.scalableFeatures.findIndex(f => f.properties.id === id);
+		if (scalableFeature) {
+			this.scalableFeatures.splice(scalableFeature, 1);
+			this.scalableSource?.setData?.({ type: "FeatureCollection", features: this.scalableFeatures });
+		}
 	}
 
 	// Getters
@@ -177,6 +241,12 @@ export class ItemMarker extends Marker {
 	get source() { return this.map.getSource(this.sourceID); }
 	get layerID() { return `${this.type}-layer`; }
 	get layer() { return this.map.getLayer(this.layerID); }
+	get scalableSourceID() { return `${this.type}-scalable-source`; }
+	get scalableSource() { return this.map.getSource(this.scalableSourceID); }
+	get scalableLayerID() { return `${this.type}-scalable-layer`; }
+	get scalableLayer() { return this.map.getLayer(this.scalableLayerID); }
+	get sourceIDs() { return [this.sourceID, this.scalableSourceID]; }
+	get layerIDs() { return [this.layerID, this.scalableLayerID]; }
 
 	// Utility functions
 	getItem(id) { throw new Error(`${this.constructor.name}.getItem() must be implemented.`); }
@@ -184,6 +254,9 @@ export class ItemMarker extends Marker {
 	getImageURL(item) { return item.texture.src; }
 	getImageID(id) { return `${this.type}-image-${id}` }
 	getImage(id) { return this.map.getImage(this.getImageID(id)); }
+	// getSize(id) { return 1 / this.mapMarkers.gridWidth; }
+	getSize(id) { return 1; }
+	getScalable(id) { throw new Error(`${this.constructor.name}.getItem() must be implemented.`); }
 	itemVisible(data) {
 		const item = data.item ?? this.getItem(data.id);
 		return item && (!item.hidden || game.user.isGM);
@@ -192,6 +265,28 @@ export class ItemMarker extends Marker {
 		const item = data.item ?? this.getItem(data.id);
 		return item?.testUserPermission(game.user, permission);
 	}
+	worldRelativeIconSize(targetZoom = 10, baseSize = 1.0) {
+		return [
+			"interpolate",
+			["exponential", 2],
+			["zoom"],
+			0, baseSize * Math.pow(2, 0 - targetZoom),
+			20, baseSize * Math.pow(2, 20 - targetZoom),
+		];
+	}
+	async normalizeImageSize(image, size = 64) {
+		if (image.size === size) return image.data;
+		const canvas = document.createElement("canvas");
+		canvas.width = size;
+		canvas.height = size;
+
+		const ctx = canvas.getContext("2d");
+		ctx.clearRect(0, 0, size, size);
+		ctx.drawImage(image.data, 0, 0, size, size);
+
+		return await createImageBitmap(canvas);
+	}
+
 
 	// Hooks
 	// addFoundryHooks() {
@@ -219,26 +314,24 @@ export class ItemMarker extends Marker {
 	//// Specific Item
 	onHover(event, properties={}, entering=true) {
 		const { id } = properties;
-		if (!id) return;
-		if (!this.dragging.active) {
-			if (entering) {
-				this.hovering.add(id);
-				this.map.getCanvas().style.cursor = "pointer";
-			} else {
-				this.hovering.delete(id);
-				if (!this.hovering.size) this.map.getCanvas().style.cursor = "";
-			}
+		if (!id || this.dragging.id) return;
+		if (entering) {
+			this.hovering.add(id);
+			this.map.getCanvas().style.cursor = "pointer";
+		} else {
+			this.hovering.delete(id);
+			if (!this.hovering.size) this.map.getCanvas().style.cursor = "";
 		}
 	}
 	onClick(event, properties={}) {
 		const { id } = properties;
-		if (!id) return;
+		if (!id || this.dragging.id) return;
 		const item = this.getItem(id);
 		item?.object?.control?.({ releaseOthers: true });
 	}
 	onGrab(event, properties={}) {
 		const { id } = properties;
-		if (!id || !this.hasPermission({ id }, "OWNER")) return;
+		if (!id || !this.hasPermission({ id }, "OWNER") || this.dragging.id) return;
 		for (const _id of this.hovering) this.onHover(event, _id, false);
 
 		this.dragging.id = id;
@@ -265,14 +358,12 @@ export class ItemMarker extends Marker {
 		}
 	}
 	onRelease(event, properties={}) {
-		const { id } = properties;
-		if (!id) return;
 		if (this.dragging.active) {
 			// Convert lng/lat → Foundry scene coordinates
 			const { lng, lat } = this.map.unproject(event.point);
 			const { x, y } = this.lngLatToScene(lng, lat);
 
-			const item = this.getItem(id);
+			const item = this.getItem(this.dragging.id);
 			item?.update({ x, y }, { animation: { duration: 1000 } });
 			item?.object?.control();
 		}

@@ -23,7 +23,7 @@ export class Marker {
 	// Getters
 	get map() { return this.mapMarkers.map; }
 	get scene() { return this.mapMarkers.scene; }
-	get sourceIDs() { return [this.sourceIDs]; }
+	get sourceIDs() { return [this.sourceID]; }
 	get layerIDs() { return [this.layerID]; }
 
 	// MapMarkers Helper Functions
