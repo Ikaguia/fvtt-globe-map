@@ -18,7 +18,7 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 
 ### [Unreleased]
 
-- Initial globe position is now based on initial scene position
+- Initial globe position is now based on initial scene position (use shift ping + 'capture current view' to set initial view)
 
 ### [0.0.9]
 
