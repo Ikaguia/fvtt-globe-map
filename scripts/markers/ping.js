@@ -19,7 +19,7 @@ export class PingMarker extends Marker {
 	addFoundryHooks() {
 		super.addFoundryHooks();
 
-		this.mapMarkers.addFoundryHook("fvtt-globe-map.handlePing", (user, position, {scene, style="pulse", pull=false, zoom=1, ...pingOptions}={}) => {
+		this.mapMarkers.addFoundryHook("fvtt-globe-map.handlePing", (_this, result, config, user, position, {scene, style="pulse", pull=false, zoom=1, ...pingOptions}={}) => {
 			if (!canvas.scene?.getFlag("fvtt-globe-map", "enabled")) return;
 
 			const { x, y } = position;

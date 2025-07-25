@@ -16,6 +16,10 @@ https://github.com/Ikaguia/fvtt-globe-map/releases/latest/download/module.json
 
 ## Changelog
 
+### [Unreleased]
+
+- Initial globe position is now based on initial scene position
+
 ### [0.0.9]
 
 - Token/Note Markers now only show up when not hidden (or to GMs)

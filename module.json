@@ -18,7 +18,16 @@
   ],
   "relationships": {
     "systems": [],
-    "requires": []
+    "requires": [
+        {
+            "id": "lib-wrapper",
+            "type": "module",
+            "compatibility": {
+                "minimum": "1.0.0.0",
+                "verified": "1.13.2.0"
+            }
+        }
+    ]
   },
   "esmodules": [
     "scripts/module.js"

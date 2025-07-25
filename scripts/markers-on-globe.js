@@ -23,6 +23,7 @@ export class MapMarkers {
 		// Initial Setup
 		this.addMapListeners();
 		this.addFoundryHooks();
+		this.setInitialViewFromScene();
 	}
 
 	destroy() {
@@ -155,5 +156,34 @@ export class MapMarkers {
 	collectMarkerFeatures(marker, groupedFeatures) {
 		if (!marker.layerIDs?.length) return [];
 		return marker.layerIDs.flatMap(id => groupedFeatures[id] ?? []);
+	}
+
+	setInitialViewFromScene() {
+		const initial = this.scene.initial;
+		if (!initial) return;
+
+		if (initial.x && initial.y) {
+			const lngLat = this.sceneToLngLat(initial.x, initial.y);
+			this.map.setCenter(lngLat);
+		}
+
+		if (initial.scale) {
+			// const zoom = this.scaleToZoom(initial.scale);
+			const zoom = initial.scale;
+			this.map.setZoom(zoom);
+		}
+	}
+
+	async saveViewAsInitialPosition() {
+		const { lng, lat} = this.map.getCenter();
+		const { x, y } = this.lngLatToScene(lng, lat);
+
+		const zoom = this.map.getZoom?.() ?? 1;
+		// const scale = this.zoomToScale(zoom);
+		const scale = zoom;
+
+		await this.scene.update({
+			initial: { x, y, scale }
+		});
 	}
 }
