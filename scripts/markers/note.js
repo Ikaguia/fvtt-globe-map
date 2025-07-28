@@ -10,6 +10,8 @@ export class NoteMarker extends ItemMarker {
 	// getSize(id) { return (this.getItem(id)?.iconSize ?? 40) / this.mapMarkers.width; }
 	getSize(id) { return (this.getItem(id)?.iconSize ?? 40) / 40; }
 	getScalable(id) { return (this.getItem(id)?.elevation ?? 0) === 0; }
+	getName(id) { return this.getItem(id)?.label; }
+	getDisplayName(id) { return this.getItem(id)?.global; }
 	hasPermission(data, permission="OWNER") {
 		const item = data.item ?? this.getItem(data.id);
 		return item?.entry?.testUserPermission(game.user, permission);

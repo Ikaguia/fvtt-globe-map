@@ -10,6 +10,8 @@ export class TokenMarker extends ItemMarker {
 	// getSize(id) { return 10000 * ((this.getItem(id)?.width ?? 1) * 1.0) / this.mapMarkers.gridWidth; }
 	getSize(id) { return this.getItem(id)?.width ?? 1; }
 	getScalable(id) { return (this.getItem(id)?.elevation ?? 0) === 0; }
+	getName(id) { return this.getItem(id)?.name; }
+	getDisplayName(id) { return this.getItem(id)?.displayName !== 0; }
 
 	// Hooks
 	addFoundryHooks() {

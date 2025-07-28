@@ -10,6 +10,8 @@ export class ItemMarker extends Marker {
 		this.ids = new Set();
 		this.features = [];
 		this.scalableFeatures = [];
+		this.labels = [];
+		this.scalableLabels = [];
 		this.hovering = new Set();
 		this.dragging = {
 			id: null,
@@ -112,6 +114,67 @@ export class ItemMarker extends Marker {
 				}
 			});
 		}
+		// Labels
+		if (!this.labelSource) this.map.addSource(this.labelSourceID, {
+			type: "geojson",
+			data: {
+				type: "FeatureCollection",
+				features: []
+			},
+		});
+		if (!this.labelLayer) this.map.addLayer({
+			id: this.labelLayerID,
+			type: "symbol",
+			source: this.labelSourceID,
+			layout: {
+				"text-field": ["get", "label"],
+				"text-size": 24,
+				"text-anchor": "top",
+				"text-offset": [0, 1],
+				"symbol-placement": "point",
+				"text-font": ["NotoSans-Medium"],
+				"text-allow-overlap": true,
+				"text-ignore-placement": true
+			},
+			paint: {
+				"text-color": "#ffffff",
+				"text-halo-color": "#000000",
+				"text-halo-width": 1
+			},
+		});
+		if (!this.scalableLabelSource) this.map.addSource(this.scalableLabelSourceID, {
+			type: "geojson",
+			data: {
+				type: "FeatureCollection",
+				features: []
+			},
+		});
+		if (!this.scalableLabelLayer) this.map.addLayer({
+			id: this.scalableLabelLayerID,
+			type: "symbol",
+			source: this.scalableLabelSourceID,
+			layout: {
+				"text-field": ["get", "label"],
+				"text-size": [
+					"interpolate",
+					["exponential", 2],
+					["zoom"],
+					0, 20000 * Math.pow(2, 0 - 20),
+					20, 20000 * Math.pow(2, 20 - 20),
+				],
+				"text-anchor": "top",
+				"text-offset": [0, 1],
+				"symbol-placement": "point",
+				"text-font": ["NotoSans-Medium"],
+				"text-allow-overlap": true,
+				"text-ignore-placement": true
+			},
+			paint: {
+				"text-color": "#ffffff",
+				"text-halo-color": "#000000",
+				"text-halo-width": 1
+			},
+		});
 	}
 	async createImage(data={}) {
 		const { item, id } = data;
@@ -156,6 +219,27 @@ export class ItemMarker extends Marker {
 			},
 		});
 		source?.setData?.({ type: "FeatureCollection", features });
+
+		const label = this.getName(id);
+		if (label) {
+			console.debug("Adding label for", label, scalable);
+			const labels = scalable ? this.scalableLabels : this.labels;
+			const labelSource = scalable ? this.scalableLabelSource : this.labelSource;
+			labels?.push?.({
+				type: "Feature",
+				geometry: {
+					type: "Point",
+					coordinates: [lng, lat]
+				},
+				properties: {
+					id,
+					label,
+				}
+			});
+			labelSource?.setData?.({ type: "FeatureCollection", features: labels });
+		} else {
+			console.debug("No label found for", item);
+		}
 	}
 	// Update
 	async updateImage(data={}) {
@@ -204,33 +288,54 @@ export class ItemMarker extends Marker {
 			}
 		}
 
-		const feature = feature1 || feature2;
-		const features = feature1 ? this.features : this.scalableFeatures;
 		const source = feature1 ? this.source : this.scalableSource;
+		const features = feature1 ? this.features : this.scalableFeatures;
+		const feature = feature1 || feature2;
+		if (feature && source) {
+			feature.geometry.coordinates = [lng, lat];
+			source.setData?.({ type: "FeatureCollection", features });
+		}
 
-		feature.geometry.coordinates = [lng, lat];
-		source?.setData?.({ type: "FeatureCollection", features });
+		const label1 = this.labels.find(l => l.properties.id === id);
+		const label2 = this.scalableLabels.find(l => l.properties.id === id);
+
+		const labelSource = label1 ? this.labelSource : this.scalableLabelSource;
+		const labels = label1 ? this.labels : this.scalableLabels;
+		let label = label1 || label2;
+		if (label && labelSource) {
+			label.geometry.coordinates = [lng, lat];
+			labelSource.setData?.({ type: "FeatureCollection", features: labels });
+		}
 	}
 	// Delete
 	deleteSourceLayers(data={}) {
-		if (this.source) this.map.removeSource(this.sourceID);
-		if (this.layer) this.map.removeLayer(this.layerID);
-		if (this.scalableSource) this.map.removeSource(this.scalableSourceID);
-		if (this.scalableLayer) this.map.removeLayer(this.scalableLayerID);
+		for (const id of this.sourceIDs) if (this.map.getSource(id)) this.map.removeSource(id);
+		for (const id of this.layerIDs) if (this.map.getLayer(id)) this.map.removeLayer(id);
 	}
 	deleteFeature(data={}) {
 		const { id } = data;
 		if (!id) return;
 
 		const feature = this.features.findIndex(f => f.properties.id === id);
-		if (feature) {
+		if (feature !== -1) {
 			this.features.splice(feature, 1);
 			this.source?.setData?.({ type: "FeatureCollection", features: this.features });
 		}
 		const scalableFeature = this.scalableFeatures.findIndex(f => f.properties.id === id);
-		if (scalableFeature) {
+		if (scalableFeature !== -1) {
 			this.scalableFeatures.splice(scalableFeature, 1);
 			this.scalableSource?.setData?.({ type: "FeatureCollection", features: this.scalableFeatures });
+		}
+
+		const label = this.labels.findIndex(f => f.properties.id === id);
+		if (label !== -1) {
+			this.labels.splice(label, 1);
+			this.labelSource?.setData?.({ type: "FeatureCollection", features: this.labels });
+		}
+		const scalableLabel = this.scalableLabels.findIndex(f => f.properties.id === id);
+		if (scalableLabel !== -1) {
+			this.scalableLabels.splice(scalableLabel, 1);
+			this.scalableLabelSource?.setData?.({ type: "FeatureCollection", features: this.scalableLabels });
 		}
 	}
 
@@ -245,8 +350,16 @@ export class ItemMarker extends Marker {
 	get scalableSource() { return this.map.getSource(this.scalableSourceID); }
 	get scalableLayerID() { return `${this.type}-scalable-layer`; }
 	get scalableLayer() { return this.map.getLayer(this.scalableLayerID); }
-	get sourceIDs() { return [this.sourceID, this.scalableSourceID]; }
-	get layerIDs() { return [this.layerID, this.scalableLayerID]; }
+	get labelSourceID() { return `${this.type}-label-source`; }
+	get labelSource() { return this.map.getSource(this.labelSourceID); }
+	get labelLayerID() { return `${this.type}-label-layer`; }
+	get labelLayer() { return this.map.getLayer(this.labelLayerID); }
+	get scalableLabelSourceID() { return `${this.type}-scalable-label-source`; }
+	get scalableLabelSource() { return this.map.getSource(this.scalableLabelSourceID); }
+	get scalableLabelLayerID() { return `${this.type}-scalable-label-layer`; }
+	get scalableLabelLayer() { return this.map.getLayer(this.scalableLabelLayerID); }
+	get sourceIDs() { return [this.sourceID, this.scalableSourceID, this.labelSourceID, this.scalableLabelSourceID]; }
+	get layerIDs() { return [this.layerID, this.scalableLayerID, this.labelLayerID, this.scalableLabelLayerID]; }
 
 	// Utility functions
 	getItem(id) { throw new Error(`${this.constructor.name}.getItem() must be implemented.`); }
@@ -256,6 +369,8 @@ export class ItemMarker extends Marker {
 	getImage(id) { return this.map.getImage(this.getImageID(id)); }
 	// getSize(id) { return 1 / this.mapMarkers.gridWidth; }
 	getSize(id) { return 1; }
+	getName(id) { return null; }
+	getDisplayName(id) { return true; }
 	getScalable(id) { throw new Error(`${this.constructor.name}.getItem() must be implemented.`); }
 	itemVisible(data) {
 		const item = data.item ?? this.getItem(data.id);

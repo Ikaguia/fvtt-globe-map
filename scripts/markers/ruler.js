@@ -125,6 +125,9 @@ export class RulerMarker extends Marker {
 	get labelLayerID() { return "ruler-label-layer"; }
 	get labelLayer() { return this.map.getLayer(this.labelLayerID); }
 
+	get sourceIDs() { return [this.lineSourceID, this.labelSourceID]; }
+	get layerIDs() { return [this.lineLayerID, this.labelLayerID]; }
+
 	// Helper Functions
 	labelFeatureData(point1, point2, temp=false) {
 		const [lng1, lat1] = point1;
